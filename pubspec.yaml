@@ -33,6 +33,8 @@ flutter:
     - assets/icons/functions/
     - assets/icons/navbar/
     - assets/icons/sentiment/
+    - assets/icons/buddy/
+    - assets/icons/community/
   fonts:
     - family: Pretendard
       fonts:

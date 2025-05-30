@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:tiiun/pages/chatting_page.dart';
-import 'package:tiiun/pages/buddy_page.dart';
-import 'package:tiiun/pages/conversation_list_page.dart';
-import 'package:tiiun/pages/info_page.dart';
-import 'package:tiiun/pages/my_page.dart';
+import 'package:tiiun/pages/home_chatting/chatting_page.dart';
+import 'package:tiiun/pages/buddy/buddy_page.dart';
+import 'package:tiiun/pages/home_chatting/conversation_list_page.dart';
+import 'package:tiiun/pages/information/info_page.dart';
+import 'package:tiiun/pages/mypage/my_page.dart';
 import 'package:tiiun/design_system/colors.dart';
 import 'package:tiiun/design_system/typography.dart';
 import 'package:tiiun/services/firebase_service.dart';
