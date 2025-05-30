@@ -207,56 +207,81 @@ class _ChatScreenState extends State<ChatScreen> {
         return ListView.builder(
           controller: _scrollController,
           reverse: true, // ListView를 뒤집어서 아래부터 시작
-          padding: EdgeInsets.fromLTRB(12, 82, 12, 12), // 패딩도 뒤집음
+          padding: EdgeInsets.fromLTRB(12, 82, 12, 96), // 패딩도 뒤집음
           itemCount: reversedMessages.length,
           itemBuilder: (context, index) {
             final message = reversedMessages[index];
-            return _buildMessageBubble(message);
+
+            // AI의 마지막 메시지인지 확인
+            final isLastAiMessage = index == 0 && !message.isUser;
+
+            return _buildMessageBubble(message, isLastAiMessage);
           },
         );
       },
     );
   }
 
-  Widget _buildMessageBubble(MessageModel message) {
+  Widget _buildMessageBubble(MessageModel message, [bool isLastAiMessage = false]) {
     final isUser = message.isUser;
 
-    return Align(
-      alignment: isUser ? Alignment.centerRight : Alignment.centerLeft,
-      child: Container(
-        margin: const EdgeInsets.symmetric(vertical: 8),
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-        constraints: BoxConstraints(
-          maxWidth: MediaQuery.of(context).size.width * 0.8,
-        ),
-        decoration: BoxDecoration(
-          color: isUser ? AppColors.main100 : AppColors.grey50,
-          borderRadius: isUser
-              ? BorderRadius.only(
-            topLeft: Radius.circular(16),
-            topRight: Radius.zero,
-            bottomLeft: Radius.circular(16),
-            bottomRight: Radius.circular(16),
-          )
-              : BorderRadius.only(
-            topLeft: Radius.zero,
-            topRight: Radius.circular(16),
-            bottomLeft: Radius.circular(16),
-            bottomRight: Radius.circular(16),
+    return Column(
+      crossAxisAlignment: isUser ? CrossAxisAlignment.end : CrossAxisAlignment.start,
+      children: [
+        // AI의 마지막 메시지일 때만 아이콘 표시
+        if (isLastAiMessage)
+          Container(
+            // padding: const EdgeInsets.only(left: 16, bottom: 8),
+            child: Row(
+              children: [
+                SvgPicture.asset(
+                  'assets/images/tiiun_logo.svg', // 원하는 아이콘으로 변경
+                  width: 20,
+                  height: 20,
+                ),
+              ],
+            ),
           ),
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              message.content,
-              style: AppTypography.b3.withColor(
-                isUser ? AppColors.grey800 : AppColors.grey900,
+
+        // 메시지 버블
+        Align(
+          alignment: isUser ? Alignment.centerRight : Alignment.centerLeft,
+          child: Container(
+            margin: const EdgeInsets.symmetric(vertical: 8),
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            constraints: BoxConstraints(
+              maxWidth: MediaQuery.of(context).size.width * 0.8,
+            ),
+            decoration: BoxDecoration(
+              color: isUser ? AppColors.main100 : AppColors.grey50,
+              borderRadius: isUser
+                  ? BorderRadius.only(
+                topLeft: Radius.circular(16),
+                topRight: Radius.zero,
+                bottomLeft: Radius.circular(16),
+                bottomRight: Radius.circular(16),
+              )
+                  : BorderRadius.only(
+                topLeft: Radius.zero,
+                topRight: Radius.circular(16),
+                bottomLeft: Radius.circular(16),
+                bottomRight: Radius.circular(16),
               ),
             ),
-          ],
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  message.content,
+                  style: AppTypography.b3.withColor(
+                    isUser ? AppColors.grey800 : AppColors.grey900,
+                  ),
+                ),
+              ],
+            ),
+          ),
         ),
-      ),
+      ],
     );
   }
 

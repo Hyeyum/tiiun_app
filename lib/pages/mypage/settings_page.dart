@@ -2,6 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:tiiun/design_system/colors.dart';
 import 'package:tiiun/design_system/typography.dart';
+import 'package:tiiun/pages/mypage/my_setting_buddy.dart';
+import 'package:tiiun/pages/mypage/my_setting_chatting.dart';
+import 'package:tiiun/pages/mypage/my_setting_language.dart';
+import 'package:tiiun/pages/mypage/my_setting_notification.dart';
+import 'package:tiiun/pages/mypage/my_setting_profile.dart';
+import 'package:tiiun/pages/mypage/my_setting_scrap.dart';
+import 'package:tiiun/pages/mypage/my_setting_serviceinfo.dart';
 
 class SettingsPage extends StatelessWidget {
   const SettingsPage({super.key});
@@ -19,7 +26,7 @@ class SettingsPage extends StatelessWidget {
         leading: Padding(
           padding: const EdgeInsets.only(left: 4),
           child: IconButton(
-            icon: Icon(Icons.arrow_back_ios, color: AppColors.grey900, size: 20),
+            icon: Icon(Icons.arrow_back_ios, color: AppColors.grey700, size: 20),
             onPressed: () => Navigator.pop(context),
           ),
         ),
@@ -27,7 +34,7 @@ class SettingsPage extends StatelessWidget {
           padding: const EdgeInsets.only(top: 0), // 타이틀 위치 조정
           child: Text(
             '설정',
-            style: AppTypography.s1.withColor(AppColors.grey900),
+            style: AppTypography.b2.withColor(AppColors.grey900),
           ),
         ),
         centerTitle: true,
@@ -66,11 +73,25 @@ class SettingsPage extends StatelessWidget {
                     ),
                   ),
 
-                  SvgPicture.asset(
-                    'assets/icons/functions/Edit_Pencil_01.svg',
-                    width: 24,
-                    height: 24,
-                  )
+                  GestureDetector(
+                    onTap: () {
+                      // ProfilePage로 이동
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => const MySettingProfilePage(),
+                        ),
+                      );
+                    },
+                    child: Container(
+                      padding: const EdgeInsets.all(4), // 터치 영역 확대
+                      child: SvgPicture.asset(
+                        'assets/icons/functions/Edit_Pencil_01.svg',
+                        width: 24,
+                        height: 24,
+                      ),
+                    ),
+                  ),
 
                 ],
               ),
@@ -93,8 +114,14 @@ class SettingsPage extends StatelessWidget {
                 _buildMenuItem(
                   iconPath: 'assets/icons/functions/bookmark.svg',
                   title: '스크랩',
-                  onTap: () {
+                  onTap: () => {
                     // 스크랩 페이지로 이동
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => const MySettingScrapPage(),
+                      ),
+                    ),
                   },
                 ),
                 _buildDivider(),
@@ -103,6 +130,12 @@ class SettingsPage extends StatelessWidget {
                   title: '버디 설정',
                   onTap: () {
                     // 버디 설정 페이지로 이동
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => const MySettingBuddyPage(),
+                      ),
+                    );
                   },
                 ),
                 _buildDivider(),
@@ -111,6 +144,12 @@ class SettingsPage extends StatelessWidget {
                   title: '언어',
                   onTap: () {
                     // 언어 설정 페이지로 이동
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => const MySettingLanguagePage(),
+                      ),
+                    );
                   },
                 ),
                 _buildDivider(),
@@ -119,6 +158,12 @@ class SettingsPage extends StatelessWidget {
                   title: '알림',
                   onTap: () {
                     // 알림 설정 페이지로 이동
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => const MySettingNotificationPage(),
+                      ),
+                    );
                   },
                 ),
                 _buildDivider(),
@@ -127,6 +172,12 @@ class SettingsPage extends StatelessWidget {
                   title: '채팅',
                   onTap: () {
                     // 채팅 설정 페이지로 이동
+                    Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                        builder: (context) => const MySettingChattingPage(),
+                      ),
+                    );
                   },
                 ),
                 _buildDivider(),
@@ -143,6 +194,12 @@ class SettingsPage extends StatelessWidget {
                   title: '서비스 정보',
                   onTap: () {
                     // 서비스 정보 페이지로 이동
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => const MySettingServiceinfoPage(),
+                      ),
+                    );
                   },
                 ),
               ],

@@ -5,7 +5,7 @@ import 'package:tiiun/models/conversation_model.dart';
 import 'package:tiiun/models/message_model.dart';
 import 'package:tiiun/design_system/colors.dart';
 import 'package:tiiun/design_system/typography.dart';
-import 'package:tiiun/pages/chatting_page.dart';
+import 'package:tiiun/pages/home_chatting/chatting_page.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 
 class ConversationListPage extends StatefulWidget {
