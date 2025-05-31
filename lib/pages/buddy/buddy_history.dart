@@ -19,8 +19,13 @@ class BuddyHistoryPage extends StatelessWidget {
         leading: Padding(
           padding: const EdgeInsets.only(left: 4),
           child: IconButton(
-            icon: Icon(Icons.arrow_back_ios, color: AppColors.grey700, size: 20),
             onPressed: () => Navigator.pop(context),
+            icon: SvgPicture.asset(
+              'assets/icons/functions/back.svg',
+              width: 24,
+              height: 24,
+              color: AppColors.grey700,
+            ),
           ),
         ),
         title: Padding(

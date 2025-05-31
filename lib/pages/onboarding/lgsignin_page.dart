@@ -243,11 +243,16 @@ class _LGSigninPageState extends State<LGSigninPage> {
             left: 0,
             top: 0,
             bottom: 0,
-            child: IconButton(
-              onPressed: () => Navigator.pop(context),
-              icon: const Icon(Icons.arrow_back_ios),
-              iconSize: 20,
-              color: AppColors.grey700,
+            child: Center(
+              child: IconButton(
+                onPressed: () => Navigator.pop(context),
+                icon: SvgPicture.asset(
+                  'assets/icons/functions/back.svg',
+                  width: 24,
+                  height: 24,
+                  color: AppColors.grey700,
+                ),
+              ),
             ),
           ),
           // 제목 (가운데)
@@ -386,12 +391,13 @@ class _LGSigninPageState extends State<LGSigninPage> {
             borderRadius: BorderRadius.circular(12),
           ),
           elevation: 0,
+          overlayColor: AppColors.main200,
         ),
         child: _isLoading
             ? const CircularProgressIndicator(color: Colors.white, strokeWidth: 2)
             : Text(
           '로그인',
-          style: AppTypography.largeBtn.withColor(
+          style: AppTypography.s2.withColor(
             _isFormValid ? Colors.white : AppColors.grey400,
           ),
         ),

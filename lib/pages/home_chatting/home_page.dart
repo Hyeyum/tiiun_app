@@ -320,7 +320,7 @@ class _HomePageState extends State<HomePage> {
                             bottom: 0,
                             child: IgnorePointer(
                               child: Container(
-                                width: 24,
+                                width: 40,
                                 decoration: BoxDecoration(
                                   gradient: LinearGradient(
                                     begin: Alignment.centerLeft,
@@ -342,7 +342,7 @@ class _HomePageState extends State<HomePage> {
                             bottom: 0,
                             child: IgnorePointer(
                               child: Container(
-                                width: 24,
+                                width: 40,
                                 decoration: BoxDecoration(
                                   gradient: LinearGradient(
                                     begin: Alignment.centerLeft,
