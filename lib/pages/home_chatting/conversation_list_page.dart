@@ -26,12 +26,17 @@ class _ConversationListPageState extends State<ConversationListPage> {
         backgroundColor: Colors.white,
         elevation: 0,
         leading: IconButton(
-          icon: Icon(Icons.arrow_back, color: AppColors.grey900),
           onPressed: () => Navigator.pop(context),
+          icon: SvgPicture.asset(
+            'assets/icons/functions/back.svg',
+            width: 24,
+            height: 24,
+            color: AppColors.grey700,
+          ),
         ),
         title: Text(
-          '이전 대화',
-          style: AppTypography.s1.withColor(AppColors.grey900),
+          '대화 목록',
+          style: AppTypography.b2.withColor(AppColors.grey900),
         ),
         centerTitle: true,
       ),
@@ -77,7 +82,7 @@ class _ConversationListPageState extends State<ConversationListPage> {
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   SvgPicture.asset(
-                    'assets/icons/functions/icon_dialog.svg',
+                    'assets/icons/functions/icon_chat.svg',
                     width: 48,
                     height: 48,
                     colorFilter: ColorFilter.mode(
@@ -92,7 +97,7 @@ class _ConversationListPageState extends State<ConversationListPage> {
                   ),
                   const SizedBox(height: 8),
                   Text(
-                    '홈에서 새로운 대화를 시작해보세요!',
+                    '버디와 새로운 대화를 시작해보세요!',
                     style: AppTypography.c2.withColor(AppColors.grey400),
                   ),
                 ],
@@ -186,7 +191,7 @@ class _ConversationListPageState extends State<ConversationListPage> {
       final day = date.day;
       final hour = date.hour;
       final minute = date.minute;
-      return '$month월 ${day}일 ${hour}:${minute.toString().padLeft(2, '0')} 대화';
+      return '$month월 ${day}일 ${hour}:${minute.toString().padLeft(2, '0')}';
     }
     return '틔운이와의 대화';
   }

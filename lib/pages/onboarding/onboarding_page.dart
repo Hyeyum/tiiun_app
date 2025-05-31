@@ -211,6 +211,8 @@ class _OnboardingPageState extends State<OnboardingPage> {
                           borderRadius: BorderRadius.circular(12),
                         ),
                         elevation: 0,
+                        overlayColor: AppColors.main200,
+                        // splashFactory: NoSplash.splashFactory,
                       ),
                       child: Text(
                         '회원가입',
@@ -228,11 +230,13 @@ class _OnboardingPageState extends State<OnboardingPage> {
                     child: OutlinedButton(
                       onPressed: _navigateToLogin,
                       style: OutlinedButton.styleFrom(
-                        foregroundColor: AppColors.main700,
+                        foregroundColor: AppColors.main900,
                         side: BorderSide(color: AppColors.main700, width: 1.5),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(12),
                         ),
+                        elevation: 0,
+                        overlayColor: AppColors.main300,
                       ),
                       child: Text(
                         '기존 회원',

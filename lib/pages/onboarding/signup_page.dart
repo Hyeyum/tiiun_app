@@ -432,9 +432,12 @@ class _SignupPageState extends State<SignupPage> {
             bottom: 0,
             child: IconButton(
               onPressed: _previousStep,
-              icon: const Icon(Icons.arrow_back_ios),
-              iconSize: 20,
-              color: AppColors.grey700,
+              icon: SvgPicture.asset(
+                'assets/icons/functions/back.svg',
+                width: 24,
+                height: 24,
+                color: AppColors.grey700,
+              ),
             ),
           ),
           // 제목 (가운데)
@@ -641,12 +644,13 @@ class _SignupPageState extends State<SignupPage> {
             borderRadius: BorderRadius.circular(12),
           ),
           elevation: 0,
+          overlayColor: AppColors.main200,
         ),
         child: _isLoading
             ? const CircularProgressIndicator(color: Colors.white, strokeWidth: 2)
             : Text(
           '가입하기',
-          style: AppTypography.largeBtn.withColor(
+          style: AppTypography.s2.withColor(
             _isFormValid ? Colors.white : AppColors.grey500,
           ),
         ),
@@ -667,10 +671,12 @@ class _SignupPageState extends State<SignupPage> {
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(12),
           ),
+          elevation: 0,
+          overlayColor: AppColors.main200,
         ),
         child: Text(
           '시작하기',
-          style: AppTypography.largeBtn.withColor(Colors.white,),
+          style: AppTypography.s2.withColor(Colors.white,),
         ),
       ),
     );
