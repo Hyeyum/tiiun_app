@@ -33,6 +33,10 @@ flutter:
     - assets/images/contents/
     - assets/images/logos/
     - assets/images/mypage/
+    - assets/images/diary/
+    - assets/images/display/
+    - assets/images/history/
+    - assets/images/shop/
     - assets/icons/functions/
     - assets/icons/navbar/
     - assets/icons/sentiment/
