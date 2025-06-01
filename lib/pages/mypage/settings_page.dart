@@ -56,7 +56,7 @@ class SettingsPage extends StatelessWidget {
                 children: [
                   // 프로필 이미지
                   SvgPicture.asset(
-                    'assets/images/Profile_image.svg',
+                    'assets/images/mypage/Profile_image.svg',
                     height: 60,
                     width: 60,
                   ),

@@ -179,7 +179,7 @@ class _OnboardingPageState extends State<OnboardingPage> {
                     // 로고
                     Container(
                       child: SvgPicture.asset(
-                        'assets/images/tiiun_logo.svg', width: 70.21, height: 35.26,
+                        'assets/images/logos/tiiun_logo.svg', width: 70.21, height: 35.26,
                       ),
                     ),
 
@@ -188,7 +188,7 @@ class _OnboardingPageState extends State<OnboardingPage> {
                     // 타이틀
                     Container(
                       child: SvgPicture.asset(
-                          'assets/images/tiiun_buddy_logo.svg', width: 148.32, height: 27.98
+                          'assets/images/logos/tiiun_buddy_logo.svg', width: 148.32, height: 27.98
                       ),
                     ),
                   ],

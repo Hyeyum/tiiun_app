@@ -47,13 +47,13 @@ class _LoginPageState extends State<LoginPage> {
                   children: [
                     // 로고
                     SvgPicture.asset(
-                      'assets/images/tiiun_logo.svg',
+                      'assets/images/logos/tiiun_logo.svg',
                       width: 70.21,
                       height: 35.26,
                     ),
                     const SizedBox(height: 19),
                     SvgPicture.asset(
-                      'assets/images/tiiun_buddy_logo.svg',
+                      'assets/images/logos/tiiun_buddy_logo.svg',
                       width: 148.32,
                       height: 27.98,
                     ),
@@ -66,7 +66,7 @@ class _LoginPageState extends State<LoginPage> {
                 children: [
                   _buildSocialLoginButton(
                     'LG 계정 로그인',
-                    'assets/images/lg_logo.png',
+                    'assets/images/logos/lg_logo.png',
                     Color(0xFF97282F),
                     onTap: () {
                       Navigator.push(
@@ -78,13 +78,13 @@ class _LoginPageState extends State<LoginPage> {
                   const SizedBox(height: 10),
                   _buildSocialLoginButton(
                     'Google 계정으로 로그인',
-                    'assets/images/google_logo.png',
+                    'assets/images/logos/google_logo.png',
                     Color(0xFF477BDF),
                   ),
                   const SizedBox(height: 10),
                   _buildSocialLoginButton(
                     'Apple 계정으로 로그인',
-                    'assets/images/apple_logo.png',
+                    'assets/images/logos/apple_logo.png',
                     Colors.black,
                   ),
 
