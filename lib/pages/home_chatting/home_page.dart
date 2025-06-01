@@ -655,7 +655,6 @@ class _HomePageState extends State<HomePage> {
           mainAxisSize: MainAxisSize.min,
           children: [
             Container(
-              padding: EdgeInsets.all(5),
               child: SvgPicture.asset(
                 isSelected ? activeIcon : inactiveIcon,
                 width: 24,
