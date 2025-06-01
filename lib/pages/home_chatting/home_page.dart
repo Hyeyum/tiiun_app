@@ -228,7 +228,7 @@ class _HomePageState extends State<HomePage> {
                   ),
                   const SizedBox(height: 95),
                   SvgPicture.asset(
-                    'assets/images/tiiun_logo.svg',
+                    'assets/images/logos/tiiun_logo.svg',
                     width: 80,
                     height: 40,
                   ),
@@ -420,19 +420,19 @@ class _HomePageState extends State<HomePage> {
                             children: [
                               _buildPlantTipCard(
                                   '겨울철 물주기, 깍지벌레 관리 팁',
-                                  'assets/images/plant_tip1.png'
+                                  'assets/images/contents/plant_tip1.png'
                               ),
                               _buildPlantTipCard(
                                   '겨울 걱정 NO! 겨울철 식물 이사 고민 줄여요',
-                                  'assets/images/plant_tip2.png'
+                                  'assets/images/contents/plant_tip2.png'
                               ),
                               _buildPlantTipCard(
                                   '실내 공기 정화 식물로 겨울철 건강 지키기',
-                                  'assets/images/plant_tip3.png'
+                                  'assets/images/contents/plant_tip3.png'
                               ),
                               _buildPlantTipCard(
                                   '토분이 관리하기 쉽다고? 누가!',
-                                  'assets/images/plant_tip4.png'
+                                  'assets/images/contents/plant_tip4.png'
                               ),
                             ],
                           ),
@@ -445,7 +445,7 @@ class _HomePageState extends State<HomePage> {
                   AspectRatio(
                     aspectRatio: 6.0,
                     child: Image.asset(
-                      'assets/images/ad_banner.png',
+                      'assets/images/contents/ad_banner.png',
                       width: double.infinity,
                       fit: BoxFit.fitWidth,
                       filterQuality: FilterQuality.high,

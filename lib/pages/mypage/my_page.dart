@@ -48,7 +48,7 @@ class MyPage extends StatelessWidget {
               // 프로필 섹션
               Center(
                 child: SvgPicture.asset(
-                  'assets/images/Profile_image.svg',
+                  'assets/images/mypage/Profile_image.svg',
                   width: 80,
                   height: 80,
                 ),

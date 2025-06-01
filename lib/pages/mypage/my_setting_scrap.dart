@@ -52,17 +52,17 @@ class MySettingScrapPage extends StatelessWidget {
                 _buildPlantTipCard(
                     context, // context 전달
                     '겨울철 물주기, 깍지벌레 관리 팁',
-                    'assets/images/plant_tip1.png'
+                    'assets/images/contents/plant_tip1.png'
                 ),
                 _buildPlantTipCard(
                     context, // context 전달
                     '겨울 걱정 NO! 겨울철 식물 이사 고민 줄여요',
-                    'assets/images/plant_tip2.png'
+                    'assets/images/contents/plant_tip2.png'
                 ),
                 _buildPlantTipCard(
                     context, // context 전달
                     '실내 공기 정화 식물로 겨울철 건강 지키기',
-                    'assets/images/plant_tip3.png'
+                    'assets/images/contents/plant_tip3.png'
                 ),
               ],
             ),

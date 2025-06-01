@@ -235,7 +235,7 @@ class _ChatScreenState extends State<ChatScreen> {
             child: Row(
               children: [
                 SvgPicture.asset(
-                  'assets/images/tiiun_logo.svg', // 원하는 아이콘으로 변경
+                  'assets/images/logos/tiiun_logo.svg', // 원하는 아이콘으로 변경
                   width: 20,
                   height: 20,
                 ),

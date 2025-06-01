@@ -59,13 +59,13 @@ class _SplashScreenState extends State<SplashScreen> {
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               SvgPicture.asset(
-                'assets/images/tiiun_logo.svg',
+                'assets/images/logos/tiiun_logo.svg',
                 width: 70.21,
                 height: 35.26,
               ), // 로고
               const SizedBox(height: 18.74),
               SvgPicture.asset(
-                'assets/images/tiiun_buddy_logo.svg',
+                'assets/images/logos/tiiun_buddy_logo.svg',
                 width: 149,
                 height: 29,
               ),

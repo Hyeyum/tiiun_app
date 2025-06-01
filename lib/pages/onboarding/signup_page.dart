@@ -399,7 +399,7 @@ class _SignupPageState extends State<SignupPage> {
               // 환영 이미지 (고정)
               Center(
                 child: Image.asset(
-                  'assets/images/illust_welcome.png',
+                  'assets/images/logos/illust_welcome.png',
                   width: 200,
                   height: 200,
                 ),
