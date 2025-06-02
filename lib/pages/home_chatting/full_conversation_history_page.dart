@@ -85,6 +85,7 @@ class _FullConversationHistoryPageState extends ConsumerState<FullConversationHi
   @override
   Widget build(BuildContext context) {
     return Container(
+      color: Colors.white,
       // padding: EdgeInsets.symmetric(horizontal: 20),
       child: Stack(
         children: [
@@ -195,7 +196,7 @@ class _FullConversationHistoryPageState extends ConsumerState<FullConversationHi
         _showSnackBar('새로운 대화 주제를 추가합니다.');
       },
       child: Container(
-        margin: margin,
+        margin: EdgeInsets.only(bottom: 10),
         width: double.infinity,
         height: 40,
         decoration: BoxDecoration(
@@ -228,7 +229,7 @@ class _FullConversationHistoryPageState extends ConsumerState<FullConversationHi
       padding: const EdgeInsets.all(20),
       margin: const EdgeInsets.only(bottom: 10),
       decoration: BoxDecoration(
-        color: AppColors.grey100,
+        color: AppColors.grey50,
         borderRadius: BorderRadius.circular(12),
       ),
       child: Row(
