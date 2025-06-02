@@ -7,6 +7,8 @@ class MessageModel {
   final DateTime createdAt;
   final String sender; // 'user' 또는 'ai'
   final String type; // 'text', 'voice', 'image' 등
+  final String? imageUrl;
+  final String? audioUrl;
 
   MessageModel({
     this.messageId,
@@ -15,6 +17,8 @@ class MessageModel {
     required this.createdAt,
     required this.sender,
     this.type = 'text',
+    this.imageUrl,
+    this.audioUrl,
   });
 
   // Firestore에서 데이터 가져올 때 사용
@@ -31,6 +35,8 @@ class MessageModel {
           : DateTime.now(),
       sender: data['sender'] ?? 'user',
       type: data['type'] ?? 'text',
+      imageUrl: data['image_url'],
+      audioUrl: data['audio_url'],
     );
   }
 
@@ -42,6 +48,8 @@ class MessageModel {
       'created_at': Timestamp.fromDate(createdAt),
       'sender': sender,
       'type': type,
+      'image_url': imageUrl,
+      'audio_url': audioUrl,
     };
   }
 

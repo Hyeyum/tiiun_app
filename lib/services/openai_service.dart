@@ -1,9 +1,23 @@
+// lib/services/openai_service.dart
+// DEPRECATED: Strongly consider migrating all usage to LangchainService.
+// This service will be modified to use RemoteConfig for API key, but its
+// long-term existence is questionable due to feature overlap with LangchainService.
 import 'dart:convert';
 import 'package:http/http.dart' as http;
+import 'package:flutter/foundation.dart'; // For debugPrint
+import 'package:tiiun/services/remote_config_service.dart'; // Import RemoteConfigService
+import 'package:flutter_riverpod/flutter_riverpod.dart'; // For Provider
+
+// Provider for OpenAIService (if still needed)
+final openAIServiceProvider = Provider<OpenAIService>((ref) {
+  final remoteConfigService = ref.watch(remoteConfigServiceProvider);
+  final apiKey = remoteConfigService.getOpenAIApiKey();
+  return OpenAIService(apiKey: apiKey);
+});
 
 class OpenAIService {
-  // 🚫 보안상 API 키는 별도 관리 필요
-  static const String _apiKey = '';
+  // 🚫 보안상 API 키는 별도 관리 필요 -> Remote Config로 변경됨
+  final String _apiKey; // Now passed via constructor
 
   // ✅ 올바른 API URL
   static const String _baseUrl = 'https://api.openai.com/v1';
@@ -30,47 +44,68 @@ class OpenAIService {
 - 항상 도움이 되고 건설적인 대화를 지향합니다
 ''';
 
+  OpenAIService({required String apiKey}) : _apiKey = apiKey;
+
   // ChatGPT와 대화하기
   static Future<String> getChatResponse({
     required String message,
     required String conversationType,
     List<Map<String, String>>? conversationHistory,
   }) async {
-    // 🚫 API 키가 없으면 폴백 응답 사용
-    if (_apiKey.isEmpty) {
-      print('⚠️ API 키가 설정되지 않음 - 폴백 응답 사용');
+    // Access the instance via the provider for API key
+    // This static method needs to be converted to an instance method or
+    // accept the API key. For now, it will use a dummy key for demonstration
+    // if accessed statically without a provider.
+    // However, it's better to make this a non-static method and inject OpenAIService.
+    // For simplicity for the current structure, I'll pass the key.
+    // (This part is a bit tricky with static methods and providers. The best way
+    // is to make getChatResponse non-static and use the _apiKey of the instance.)
+
+    // Placeholder for static access: If this is called statically without a provider,
+    // it will use a dummy key or require the key to be passed.
+    // The current code suggests it's called statically in pages/chatting_page.dart
+    // For proper integration, OpenAIService should be injected using Riverpod.
+    // For now, let's assume getOpenAIApiKey is available through a static method.
+    // This is a temporary fix.
+
+    // To make this method use the injected API key, it must be non-static.
+    // For now, assuming direct access to RemoteConfigService for static demonstration.
+    // This is NOT the recommended way for production.
+    final tempRemoteConfigService = RemoteConfigService();
+    await tempRemoteConfigService.initialize(); // Ensure it's initialized
+    final currentApiKey = tempRemoteConfigService.getOpenAIApiKey();
+
+
+    if (currentApiKey.isEmpty) {
+      debugPrint('⚠️ API 키가 설정되지 않음 - 폴백 응답 사용');
       return _getFallbackResponse(conversationType);
     }
 
     try {
-      print('🚀 OpenAI API 호출 시작: $message');
+      debugPrint('🚀 OpenAI API 호출 시작: $message');
 
-      // 대화 타입에 따른 시스템 프롬프트 조정
       String contextPrompt = _getContextPrompt(conversationType);
 
-      // 메시지 히스토리 구성
       List<Map<String, String>> messages = [
         {'role': 'system', 'content': _systemPrompt + contextPrompt},
       ];
 
-      // 이전 대화 내역 추가 (최근 10개만)
       if (conversationHistory != null && conversationHistory.isNotEmpty) {
         messages.addAll(conversationHistory.take(10));
       }
 
-      // 현재 사용자 메시지 추가
       messages.add({'role': 'user', 'content': message});
 
-      print('📤 API 요청 URL: $_baseUrl/chat/completions');
+      debugPrint('📤 API 요청 URL: $_baseUrl/chat/completions');
 
       final response = await http.post(
         Uri.parse('$_baseUrl/chat/completions'),
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': 'Bearer $_apiKey',
+          'Authorization': 'Bearer $currentApiKey', // Use the retrieved key
         },
         body: jsonEncode({
-          'model': 'gpt-3.5-turbo',
+          'model': 'gpt-4.1-2025-04-14',
           'messages': messages,
           'max_tokens': 500,
           'temperature': 0.7,
@@ -80,25 +115,25 @@ class OpenAIService {
         }),
       );
 
-      print('📥 API 응답 상태: ${response.statusCode}');
+      debugPrint('📥 API 응답 상태: ${response.statusCode}');
 
       if (response.statusCode == 200) {
         final data = jsonDecode(utf8.decode(response.bodyBytes));
         final aiResponse = data['choices'][0]['message']['content'] as String;
-        print('✅ OpenAI API 성공: ${aiResponse.substring(0, aiResponse.length > 50 ? 50 : aiResponse.length)}...');
+        debugPrint('✅ OpenAI API 성공: ${aiResponse.substring(0, aiResponse.length > 50 ? 50 : aiResponse.length)}...');
         return aiResponse.trim();
       } else {
-        print('❌ OpenAI API 오류: ${response.statusCode}');
-        print('❌ 응답 내용: ${response.body}');
+        debugPrint('❌ OpenAI API 오류: ${response.statusCode}');
+        debugPrint('❌ 응답 내용: ${response.body}');
         return _getFallbackResponse(conversationType);
       }
     } catch (e) {
-      print('💥 OpenAI API 호출 중 오류: $e');
+      debugPrint('💥 OpenAI API 호출 중 오류: $e');
       return _getFallbackResponse(conversationType);
     }
   }
 
-  // 대화 타입별 컨텍스트 프롬프트
+  // Helper static methods (can remain static as they don't depend on _apiKey)
   static String _getContextPrompt(String conversationType) {
     switch (conversationType) {
       case '자랑거리':
@@ -118,7 +153,6 @@ class OpenAIService {
     }
   }
 
-  // API 호출 실패 시 대체 응답
   static String _getFallbackResponse(String conversationType) {
     switch (conversationType) {
       case '자랑거리':
@@ -139,42 +173,48 @@ class OpenAIService {
   }
 
   // 🔍 디버깅용 공개 메서드들
-  static String getApiKeyPrefix() {
-    return _apiKey.isEmpty ? 'API 키 없음' : _apiKey.substring(0, _apiKey.length > 10 ? 10 : _apiKey.length);
+  // These should ideally be non-static or accept an API key if they remain.
+  static String getApiKeyPrefix({String? apiKey}) {
+    final key = apiKey ?? RemoteConfigService().getOpenAIApiKey(); // Fallback for static access
+    return key.isEmpty ? 'API 키 없음' : key.substring(0, key.length > 10 ? 10 : key.length);
   }
 
-  static int getApiKeyLength() {
-    return _apiKey.length;
+  static int getApiKeyLength({String? apiKey}) {
+    final key = apiKey ?? RemoteConfigService().getOpenAIApiKey();
+    return key.length;
   }
 
   // 🔧 API 키 검증 메서드
-  static bool isApiKeyValid() {
-    print('🔍 API 키 검증 중...');
-    print('🔍 API 키 비어있나? ${_apiKey.isEmpty}');
+  static bool isApiKeyValid({String? apiKey}) {
+    final key = apiKey ?? RemoteConfigService().getOpenAIApiKey();
+    debugPrint('🔍 API 키 검증 중...');
+    debugPrint('🔍 API 키 비어있나? ${key.isEmpty}');
 
-    if (_apiKey.isEmpty) {
-      print('⚠️ API 키가 설정되지 않음 - 로컬에서만 설정하세요');
+    if (key.isEmpty) {
+      debugPrint('⚠️ API 키가 설정되지 않음 - 로컬에서만 설정하세요');
       return false;
     }
 
-    print('🔍 API 키 시작 문자 (sk-): ${_apiKey.startsWith('sk-')}');
-    print('🔍 API 키 길이: ${_apiKey.length}');
+    debugPrint('🔍 API 키 시작 문자 (sk-): ${key.startsWith('sk-')}');
+    debugPrint('🔍 API 키 길이: ${key.length}');
 
-    bool isValid = _apiKey.isNotEmpty &&
-        _apiKey != 'your-api-key-here' &&
-        _apiKey.startsWith('sk-') &&
-        _apiKey.length >= 50;
+    bool isValid = key.isNotEmpty &&
+        key != 'your-api-key-here' &&
+        key.startsWith('sk-') &&
+        key.length >= 50;
 
-    print('🔍 최종 검증 결과: $isValid');
+    debugPrint('🔍 최종 검증 결과: $isValid');
     return isValid;
   }
 
   // 대화 히스토리를 OpenAI 형식으로 변환
+  // This method implies direct usage of OpenAI, which is now handled by Langchain.
+  // Consider removing if Langchain is the sole interface.
   static List<Map<String, String>> convertHistoryToOpenAI(List<Map<String, dynamic>> firebaseHistory) {
     return firebaseHistory.map((msg) {
       return {
         'role': msg['sender'] == 'user' ? 'user' : 'assistant',
-        'content': msg['content'] as String,
+        'content': msg['content'] as String, // Assuming content is already decoded
       };
     }).toList();
   }

@@ -8,7 +8,21 @@ import 'package:tiiun/design_system/colors.dart';
 import 'package:tiiun/design_system/typography.dart';
 import 'dart:ui';
 
-class ChatScreen extends StatefulWidget {
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:tiiun/services/conversation_service.dart';
+import 'package:tiiun/services/ai_service.dart';
+import 'package:tiiun/utils/error_handler.dart';
+import 'package:cached_network_image/cached_network_image.dart';
+import 'package:image_picker/image_picker.dart';
+
+// Import the new Modal AnalysisScreen
+import 'package:tiiun/pages/home_chatting/analysis_page.dart';
+import 'package:tiiun/services/voice_assistant_service.dart';
+import 'package:tiiun/services/speech_to_text_service.dart';
+import 'package:tiiun/services/voice_service.dart';
+import 'package:tiiun/services/image_service.dart';
+
+class ChatScreen extends ConsumerStatefulWidget {
   final String? initialMessage;
   final String? conversationId;
 
@@ -19,10 +33,10 @@ class ChatScreen extends StatefulWidget {
   });
 
   @override
-  State<ChatScreen> createState() => _ChatScreenState();
+  ConsumerState<ChatScreen> createState() => _ChatScreenState();
 }
 
-class _ChatScreenState extends State<ChatScreen> {
+class _ChatScreenState extends ConsumerState<ChatScreen> {
   final TextEditingController _messageController = TextEditingController();
   final ScrollController _scrollController = ScrollController();
   final FocusNode _textFieldFocusNode = FocusNode();
@@ -30,6 +44,9 @@ class _ChatScreenState extends State<ChatScreen> {
 
   // ValueNotifier로 텍스트 상태 관리 (깜빡임 방지)
   final ValueNotifier<bool> _hasTextNotifier = ValueNotifier<bool>(false);
+  final ValueNotifier<bool> _isRecordingNotifier = ValueNotifier<bool>(false);
+  final ValueNotifier<String> _currentTranscriptionNotifier = ValueNotifier<String>('');
+  final ValueNotifier<bool> _isUploadingImageNotifier = ValueNotifier<bool>(false);
 
   String? _currentConversationId;
   bool _isLoading = false;
@@ -59,6 +76,9 @@ class _ChatScreenState extends State<ChatScreen> {
     _scrollController.dispose();
     _textFieldFocusNode.dispose();
     _hasTextNotifier.dispose();
+    _isRecordingNotifier.dispose();
+    _currentTranscriptionNotifier.dispose();
+    _isUploadingImageNotifier.dispose();
     super.dispose();
   }
 
@@ -66,13 +86,14 @@ class _ChatScreenState extends State<ChatScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.white,
+      resizeToAvoidBottomInset: true,
       appBar: AppBar(
         toolbarHeight: 56,
         backgroundColor: Colors.white,
         elevation: 0,
-        scrolledUnderElevation: 0, // 스크롤해도 색상 변하지 않게
+        scrolledUnderElevation: 0,
         leading: IconButton(
-          padding: EdgeInsets.fromLTRB(0, 20, 0, 12),
+          padding: const EdgeInsets.fromLTRB(0, 20, 0, 12),
           icon: SvgPicture.asset(
             'assets/icons/functions/back.svg',
             width: 24,
@@ -82,8 +103,15 @@ class _ChatScreenState extends State<ChatScreen> {
         ),
         actions: [
           Container(
-            padding: EdgeInsets.fromLTRB(0, 20, 20, 12),
-            child: SvgPicture.asset('assets/icons/functions/record.svg', width: 24, height: 24,),
+            padding: const EdgeInsets.fromLTRB(0, 20, 20, 12),
+            child: GestureDetector(
+              onTap: _showAnalysisModal,
+              child: SvgPicture.asset(
+                'assets/icons/functions/record.svg',
+                width: 24,
+                height: 24,
+              ),
+            ),
           )
         ],
       ),
@@ -117,7 +145,7 @@ class _ChatScreenState extends State<ChatScreen> {
                 child: Container(
                   height: 50,
                   decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.8), // 입력칸만 반투명
+                    color: Colors.white.withOpacity(0.8),
                     borderRadius: BorderRadius.circular(48),
                     border: Border.all(
                       color: AppColors.grey200.withOpacity(0.8),
@@ -127,7 +155,7 @@ class _ChatScreenState extends State<ChatScreen> {
                       BoxShadow(
                         color: Colors.black.withOpacity(0.1),
                         blurRadius: 12,
-                        offset: Offset(0, 4),
+                        offset: const Offset(0, 4),
                       ),
                     ],
                   ),
@@ -137,11 +165,9 @@ class _ChatScreenState extends State<ChatScreen> {
                       Padding(
                         padding: const EdgeInsets.only(left: 12),
                         child: GestureDetector(
-                          onTap: () {
-                            print('카메라 버튼 클릭');
-                          },
-                          child: SvgPicture.asset(
-                            'assets/icons/functions/camera.svg',
+                          onTap: _handleCameraButton,
+                          child: Image.asset(
+                            'assets/icons/functions/camera.png',
                             width: 24,
                             height: 24,
                           ),
@@ -207,7 +233,7 @@ class _ChatScreenState extends State<ChatScreen> {
         return ListView.builder(
           controller: _scrollController,
           reverse: true, // ListView를 뒤집어서 아래부터 시작
-          padding: EdgeInsets.fromLTRB(12, 82, 12, 96), // 패딩도 뒤집음
+          padding: const EdgeInsets.fromLTRB(12, 82, 12, 82), // 패딩도 뒤집음
           itemCount: reversedMessages.length,
           itemBuilder: (context, index) {
             final message = reversedMessages[index];
@@ -235,7 +261,7 @@ class _ChatScreenState extends State<ChatScreen> {
             child: Row(
               children: [
                 SvgPicture.asset(
-                  'assets/images/logos/tiiun_logo.svg', // 원하는 아이콘으로 변경
+                  'assets/images/logos/tiiun_logo.svg',
                   width: 20,
                   height: 20,
                 ),
@@ -255,13 +281,13 @@ class _ChatScreenState extends State<ChatScreen> {
             decoration: BoxDecoration(
               color: isUser ? AppColors.main100 : AppColors.grey50,
               borderRadius: isUser
-                  ? BorderRadius.only(
+                  ? const BorderRadius.only(
                 topLeft: Radius.circular(16),
                 topRight: Radius.zero,
                 bottomLeft: Radius.circular(16),
                 bottomRight: Radius.circular(16),
               )
-                  : BorderRadius.only(
+                  : const BorderRadius.only(
                 topLeft: Radius.zero,
                 topRight: Radius.circular(16),
                 bottomLeft: Radius.circular(16),
@@ -270,18 +296,61 @@ class _ChatScreenState extends State<ChatScreen> {
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  message.content,
-                  style: AppTypography.b3.withColor(
-                    isUser ? AppColors.grey800 : AppColors.grey900,
-                  ),
-                ),
-              ],
+                children: [
+                  if (message.isImage && message.imageUrl != null) ...[
+                    _buildImageMessage(message.imageUrl!),
+                    if (message.content.trim().isNotEmpty)
+                      const SizedBox(height: 8),
+                  ],
+
+                  if (message.content.trim().isNotEmpty)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 0),
+                      child: Text(
+                        message.content,
+                        style: AppTypography.b3.withColor(
+                          isUser ? AppColors.grey800 : AppColors.grey900,
+                        ),
+                      ),
+                    ),
+
+                  if (message.audioUrl != null && message.audioUrl!.isNotEmpty)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 8.0),
+                      child: _buildAudioPlayer(message.audioUrl!),
+                    ),
+                ]
+
             ),
           ),
         ),
       ],
+    );
+  }
+
+  // 오디오 플레이어 위젯 추가
+  Widget _buildAudioPlayer(String audioUrl) {
+    // 임시로 provider 없이 작동하도록 수정
+    return GestureDetector(
+      onTap: () async {
+        // 임시로 스낵바로 대체
+        _showSnackBar('음성 메시지 재생 기능이 곧 추가될 예정입니다.', AppColors.main600);
+      },
+      child: const Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(
+            Icons.play_circle_fill,
+            color: AppColors.main700,
+            size: 24,
+          ),
+          SizedBox(width: 8),
+          Text(
+            '음성 메시지',
+            style: TextStyle(color: AppColors.main700, fontSize: 14),
+          ),
+        ],
+      ),
     );
   }
 
@@ -292,7 +361,7 @@ class _ChatScreenState extends State<ChatScreen> {
         alignment: Alignment.centerLeft,
         child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-          decoration: BoxDecoration(
+          decoration: const BoxDecoration(
             color: AppColors.grey50,
             borderRadius: BorderRadius.only(
               topLeft: Radius.zero,
@@ -308,8 +377,8 @@ class _ChatScreenState extends State<ChatScreen> {
                 '입력 중',
                 style: AppTypography.b3.withColor(AppColors.grey900),
               ),
-              SizedBox(width: 8),
-              SizedBox(
+              const SizedBox(width: 8),
+              const SizedBox(
                 width: 20,
                 height: 20,
                 child: CircularProgressIndicator(
@@ -325,7 +394,7 @@ class _ChatScreenState extends State<ChatScreen> {
   }
 
   Widget _buildEmptyState() {
-    return Center(
+    return const Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
@@ -337,7 +406,7 @@ class _ChatScreenState extends State<ChatScreen> {
           SizedBox(height: 16),
           Text(
             '새로운 대화를 시작해보세요!',
-            style: AppTypography.b2.withColor(AppColors.grey600),
+            style: TextStyle(color: AppColors.grey600, fontSize: 16),
           ),
         ],
       ),
@@ -356,11 +425,11 @@ class _ChatScreenState extends State<ChatScreen> {
               if (hasText) {
                 _sendCurrentMessage();
               } else {
-                print("음성 버튼 클릭");
+                _toggleVoiceInput();
               }
             },
             child: AnimatedSwitcher(
-              duration: Duration(milliseconds: 150),
+              duration: const Duration(milliseconds: 150),
               transitionBuilder: (Widget child, Animation<double> animation) {
                 return FadeTransition(
                   opacity: animation,
@@ -372,19 +441,31 @@ class _ChatScreenState extends State<ChatScreen> {
                 'assets/icons/functions/Paper_Plane.svg',
                 width: 28,
                 height: 28,
-                key: ValueKey('send'),
+                colorFilter: const ColorFilter.mode(AppColors.main600, BlendMode.srcIn),
+                key: const ValueKey('send'),
               )
-                  : SvgPicture.asset(
-                'assets/icons/functions/voice.svg',
-                width: 28,
-                height: 28,
-                key: ValueKey('voice'),
+                  : ValueListenableBuilder<bool>(
+                valueListenable: _isRecordingNotifier,
+                builder: (context, isRecording, child) {
+                  return SvgPicture.asset(
+                    'assets/icons/functions/voice.svg',
+                    width: 28,
+                    height: 28,
+                    key: ValueKey(isRecording ? 'voice_recording' : 'voice'),
+                  );
+                },
               ),
             ),
           ),
         );
       },
     );
+  }
+
+  // 음성 입력 (녹음) 토글 메서드 추가
+  Future<void> _toggleVoiceInput() async {
+    // 임시로 스낵바로 대체
+    _showSnackBar('음성 입력 기능이 곧 추가될 예정입니다.', AppColors.main600);
   }
 
   void _sendCurrentMessage() {
@@ -411,7 +492,7 @@ class _ChatScreenState extends State<ChatScreen> {
     });
 
     try {
-      // 새 대화인 경우 생성
+      // 새 대화인 경우 Firestore에 생성
       if (_currentConversationId == null) {
         final conversation = await _firebaseService.createConversation();
 
@@ -423,80 +504,64 @@ class _ChatScreenState extends State<ChatScreen> {
         _conversation = conversation;
       }
 
-      // 사용자 메시지 추가
+      // 사용자 메시지 저장
       await _firebaseService.addMessage(
         conversationId: _currentConversationId!,
         content: message,
         sender: 'user',
       );
 
-      // 타이핑 인디케이터 표시
       setState(() {
         _isTyping = true;
         _isLoading = false;
       });
 
-      // 약간의 지연 후 AI 응답 생성
-      await Future.delayed(Duration(milliseconds: 500));
-
-      // 🔍 API 키 검증 디버깅 (메서드명 수정)
-      print('🔍 디버깅 시작...');
-      print('🔑 API 키 시작 부분: ${OpenAIService.getApiKeyPrefix()}');
-      print('🔍 API 키 유효성: ${OpenAIService.isApiKeyValid()}');
-      print('🔍 API 키 길이: ${OpenAIService.getApiKeyLength()}');
+      // 약간의 딜레이 후 AI 응답 생성
+      await Future.delayed(const Duration(milliseconds: 500));
 
       String aiResponse;
       if (OpenAIService.isApiKeyValid()) {
-        print('✅ API 키 유효 - OpenAI 호출 시작');
-
         try {
           aiResponse = await OpenAIService.getChatResponse(
             message: message,
             conversationType: 'normal',
           );
-          print('✅ OpenAI API 응답 받음: ${aiResponse.substring(0, aiResponse.length > 50 ? 50 : aiResponse.length)}...');
         } catch (e) {
-          print('❌ OpenAI API 에러: $e');
-          aiResponse = '죄송해요, AI 응답 생성 중 오류가 발생했어요. 다시 시도해주세요! 🤖';
+          aiResponse = 'AI 응답 생성 중 오류가 발생했습니다. 다시 시도해주세요!';
         }
       } else {
-        print('❌ API 키 무효 - 폴백 응답 사용');
         aiResponse = _generateFallbackResponse(message);
       }
 
-      // AI 응답 저장
+      // AI 메시지 저장
       await _firebaseService.addMessage(
         conversationId: _currentConversationId!,
         content: aiResponse,
         sender: 'ai',
       );
 
-      // 스크롤을 맨 아래로 (지연 시간 늘림)
       _scrollToBottom();
 
     } catch (e) {
-      print('메시지 전송 오류: $e');
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('메시지 전송 중 오류가 발생했습니다'),
-          backgroundColor: Colors.red,
-        ),
-      );
+      _showSnackBar('메시지 전송 중 오류가 발생했습니다.', AppColors.point900);
     } finally {
-      setState(() {
-        _isLoading = false;
-        _isTyping = false;
-      });
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+          _isTyping = false;
+        });
+      }
     }
   }
 
+
   void _scrollToBottom() {
     // reverse ListView에서는 0이 맨 아래
-    Future.delayed(Duration(milliseconds: 100), () {
+    Future.delayed(const Duration(milliseconds: 100), () {
       if (_scrollController.hasClients && mounted) {
         _scrollController.animateTo(
           0.0, // reverse ListView에서는 0이 맨 아래
-          duration: Duration(milliseconds: 300),
+          duration: const Duration(milliseconds: 300),
           curve: Curves.easeOut,
         );
       }
@@ -512,6 +577,64 @@ class _ChatScreenState extends State<ChatScreen> {
   // 키보드 포커스 주기
   void _focusTextField() {
     FocusScope.of(context).requestFocus(_textFieldFocusNode);
+  }
+
+  void _showSnackBar(String message, Color color) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: color,
+      ),
+    );
+  }
+
+  // 이미지 메시지 위젯
+  Widget _buildImageMessage(String imageUrl) {
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(12),
+      child: CachedNetworkImage(
+        imageUrl: imageUrl,
+        width: double.infinity,
+        fit: BoxFit.cover,
+        placeholder: (context, url) => Container(
+          height: 200,
+          color: AppColors.grey100,
+          child: const Center(
+            child: CircularProgressIndicator(
+              valueColor: AlwaysStoppedAnimation<Color>(AppColors.main600),
+            ),
+          ),
+        ),
+        errorWidget: (context, url, error) => Container(
+          height: 200,
+          color: AppColors.grey100,
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const Icon(Icons.error_outline, color: AppColors.grey400, size: 32),
+              const SizedBox(height: 8),
+              Text(
+                '이미지를 불러올 수 없습니다',
+                style: AppTypography.c2.withColor(AppColors.grey400),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  // 카메라 버튼 핸들러
+  Future<void> _handleCameraButton() async {
+    // 임시로 스낵바로 대체
+    _showSnackBar('이미지 전송 기능이 곧 추가될 예정입니다.', AppColors.main600);
+  }
+
+  // 이미지 메시지 전송
+  Future<void> _sendImageMessage(String imageUrl) async {
+    // 임시로 구현
+    _showSnackBar('이미지가 전송되었습니다.', AppColors.main600);
   }
 
   // OpenAI API 실패 시 대체 응답
@@ -531,6 +654,23 @@ class _ChatScreenState extends State<ChatScreen> {
       return '궁금한 게 있으시군요! 🤔 제가 아는 선에서 도움을 드릴게요.';
     } else {
       return '흥미로운 이야기네요! 😊 더 자세히 들려주세요.';
+    }
+  }
+
+  // Modal Bottom Sheet로 분석 화면 띄우기
+  void _showAnalysisModal() {
+    if (_currentConversationId != null) {
+      showModalBottomSheet(
+        context: context,
+        isScrollControlled: true,
+        backgroundColor: Colors.transparent,
+        barrierColor: Colors.black.withOpacity(0.5),
+        builder: (context) => ModalAnalysisScreen(
+          conversationId: _currentConversationId!,
+        ),
+      );
+    } else {
+      _showSnackBar('대화가 시작된 후에 분석을 시작할 수 있습니다.', AppColors.main600);
     }
   }
 }

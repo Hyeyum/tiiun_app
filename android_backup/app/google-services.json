@@ -1,0 +1,67 @@
+{
+  "project_info": {
+    "project_number": "937476920259",
+    "project_id": "test-f55dc",
+    "storage_bucket": "test-f55dc.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:937476920259:android:ebefe144685ba89c092376",
+        "android_client_info": {
+          "package_name": "com.example.flutter_application_1"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyC21qOaYen04oeJalZIrZiOk04qv7BYJgE"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:937476920259:android:2d3e24cd2f920040092376",
+        "android_client_info": {
+          "package_name": "com.example.mental_health_flutter"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyC21qOaYen04oeJalZIrZiOk04qv7BYJgE"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:937476920259:android:f52246e6d1da1b1c092376",
+        "android_client_info": {
+          "package_name": "com.example.myapp"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyC21qOaYen04oeJalZIrZiOk04qv7BYJgE"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
