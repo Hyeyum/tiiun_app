@@ -73,6 +73,13 @@ class _BuddyPageState extends State<BuddyPage> {
     super.dispose();
   }
 
+  // 조명 밝기 변경 함수
+  void _updateLightLevel(int level) {
+    setState(() {
+      _plants[_currentPlantIndex]['lightLevel'] = level;
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -233,10 +240,10 @@ class _BuddyPageState extends State<BuddyPage> {
               child: Transform.translate(
                 offset: const Offset(24, 0),
                 child: SvgPicture.asset(
-                  'assets/icons/functions/more.svg',
-                  width: 24,
-                  height: 24,
-                  color: AppColors.grey400
+                    'assets/icons/functions/more.svg',
+                    width: 24,
+                    height: 24,
+                    color: AppColors.grey400
                 ),
               ),
             ),
@@ -500,7 +507,7 @@ class _BuddyPageState extends State<BuddyPage> {
           ),
           const SizedBox(height: 2),
 
-          // 조명 레벨 표시
+          // 조명 레벨 표시 (터치 가능)
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
@@ -509,14 +516,17 @@ class _BuddyPageState extends State<BuddyPage> {
                 style: AppTypography.c1.withColor(AppColors.grey700),
               ),
               ...List.generate(5, (index) {
-                return Container(
-                  child:
-                  SvgPicture.asset(
-                    index < plant['lightLevel']
-                      ? 'assets/icons/buddy/light_on.svg'
-                      : 'assets/icons/buddy/light_off.svg',
-                    width: 24,
-                    height: 24,
+                return GestureDetector(
+                  onTap: () => _updateLightLevel(index + 1),
+                  child: Container(
+                    padding: const EdgeInsets.all(4), // 터치 영역을 늘리기 위한 패딩
+                    child: SvgPicture.asset(
+                      index < plant['lightLevel']
+                          ? 'assets/icons/buddy/light_on.svg'
+                          : 'assets/icons/buddy/light_off.svg',
+                      width: 24,
+                      height: 24,
+                    ),
                   ),
                 );
               }),
@@ -544,8 +554,8 @@ class _BuddyPageState extends State<BuddyPage> {
           color: Colors.white,
           borderRadius: BorderRadius.circular(12),
           border: Border.all(
-            color: AppColors.main600,
-            width: 1.5
+              color: AppColors.main600,
+              width: 1.5
           ),
         ),
         child: Center(
