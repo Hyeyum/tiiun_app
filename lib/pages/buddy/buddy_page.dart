@@ -431,7 +431,6 @@ class _BuddyPageState extends State<BuddyPage> {
           const SizedBox(height: 2),
 
           // 프로그레스 바
-          // 프로그레스 바
           Container(
             margin: const EdgeInsets.fromLTRB(0, 12, 0, 4),
             height: 12,
