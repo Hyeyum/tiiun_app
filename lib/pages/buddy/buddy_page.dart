@@ -2,8 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:tiiun/design_system/colors.dart';
 import 'package:tiiun/design_system/typography.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import 'package:tiiun/pages/buddy/buddy_diary.dart';
 import 'buddy_shop_page.dart';
 import 'buddy_history.dart';
+import 'dart:ui';
 
 class BuddyPage extends StatefulWidget {
   const BuddyPage({super.key});
@@ -200,7 +202,6 @@ class _BuddyPageState extends State<BuddyPage> {
       width: 140,
       height: 140,
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.6),
         borderRadius: BorderRadius.circular(40),
         border: Border.all(color: isActive ? Colors.white : AppColors.grey200, width: 1),
         boxShadow: [
@@ -214,12 +215,47 @@ class _BuddyPageState extends State<BuddyPage> {
       ),
       child: ClipRRect(
         borderRadius: BorderRadius.circular(40),
-        child: Center(
-          child: Transform.scale(
-            scale: 0.85,
-            child: Image.asset(
-              plant['icon'],
-              filterQuality: FilterQuality.high,
+        child: isActive
+            ? Stack(
+          children: [
+            // isActive일 때: 배경만 blur
+            BackdropFilter(
+              filter: ImageFilter.blur(sigmaX: 8, sigmaY: 8),
+              child: Container(
+                width: double.infinity,
+                height: double.infinity,
+                decoration: BoxDecoration(
+                  color: Colors.white.withOpacity(0.6),
+                ),
+              ),
+            ),
+            // 선명한 이미지
+            Center(
+              child: Transform.scale(
+                scale: 0.85,
+                child: Image.asset(
+                  plant['icon'],
+                  filterQuality: FilterQuality.high,
+                ),
+              ),
+            ),
+          ],
+        )
+            : BackdropFilter(
+          // isActive가 아닐 때: 전체(배경+이미지) blur
+          filter: ImageFilter.blur(sigmaX: 8, sigmaY: 8),
+          child: Container(
+            decoration: BoxDecoration(
+              color: Colors.white.withOpacity(0.6),
+            ),
+            child: Center(
+              child: Transform.scale(
+                scale: 0.85,
+                child: Image.asset(
+                  plant['icon'],
+                  filterQuality: FilterQuality.high,
+                ),
+              ),
             ),
           ),
         ),
@@ -231,23 +267,39 @@ class _BuddyPageState extends State<BuddyPage> {
     return Column(
       children: [
         Text('${plant['days']}일차', style: AppTypography.b4.withColor(AppColors.main900)),
-        Stack(
-          alignment: Alignment.center,
-          children: [
-            Text(plant['name'], style: AppTypography.h5.withColor(AppColors.grey900)),
-            Positioned(
-              right: 0,
-              child: Transform.translate(
-                offset: const Offset(24, 0),
+        Center(
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                plant['name'],
+                style: AppTypography.h5.withColor(AppColors.grey900),
+              ),
+              GestureDetector(
+                onTap: () {
+                  final currentPlant = _plants[_currentPlantIndex];
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => BuddyDiaryPage(
+                        plantName: currentPlant['name'],
+                        plantVariety: currentPlant['kit'],
+                        plantedDate: _calculatePlantedDate(currentPlant['days']),
+                        plantImage: currentPlant['icon'],
+                        daysPlanted: currentPlant['days'],
+                      ),
+                    ),
+                  );
+                },
                 child: SvgPicture.asset(
-                    'assets/icons/functions/more.svg',
-                    width: 24,
-                    height: 24,
-                    color: AppColors.grey400
+                  'assets/icons/functions/more.svg',
+                  width: 24,
+                  height: 24,
+                  color: AppColors.grey400,
                 ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
         Text(plant['kit'], style: AppTypography.b3.withColor(AppColors.grey500)),
       ],
@@ -431,7 +483,6 @@ class _BuddyPageState extends State<BuddyPage> {
           const SizedBox(height: 2),
 
           // 프로그레스 바
-          // 프로그레스 바
           Container(
             margin: const EdgeInsets.fromLTRB(0, 12, 0, 4),
             height: 12,
@@ -567,4 +618,12 @@ class _BuddyPageState extends State<BuddyPage> {
       ),
     );
   }
+
+  // 심은 날짜 계산 메서드 (클래스 내부에 추가)
+  String _calculatePlantedDate(int days) {
+    final now = DateTime.now();
+    final plantedDate = now.subtract(Duration(days: days));
+    return '${plantedDate.year}.${plantedDate.month.toString().padLeft(2, '0')}.${plantedDate.day.toString().padLeft(2, '0')}';
+  }
+
 }

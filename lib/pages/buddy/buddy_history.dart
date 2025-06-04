@@ -31,7 +31,7 @@ class BuddyHistoryPage extends StatelessWidget {
         title: Padding(
           padding: const EdgeInsets.only(top: 0), // 타이틀 위치 조정
           child: Text(
-            '성장일지',
+            '푸름이',
             style: AppTypography.b2.withColor(AppColors.grey900),
           ),
         ),
