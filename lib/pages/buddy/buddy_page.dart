@@ -3,6 +3,7 @@ import 'package:tiiun/design_system/colors.dart';
 import 'package:tiiun/design_system/typography.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:tiiun/pages/buddy/buddy_diary.dart';
+import 'buddy_deco.dart';
 import 'buddy_shop_page.dart';
 import 'buddy_history.dart';
 import 'dart:ui';
@@ -307,9 +308,10 @@ class _BuddyPageState extends State<BuddyPage> {
   // 버디 화면 꾸미러가기 버튼
   Widget _buildDecoButton() {
     return GestureDetector(
-      onTap: () {
-        // 버디 화면 꾸미기 기능
-      },
+      onTap: () => Navigator.push(
+        context,
+        MaterialPageRoute(builder: (_) => const BuddyDecoPage()),
+      ),
       child: Container(
         width: double.infinity,
         height: 44,
