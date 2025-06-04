@@ -231,12 +231,10 @@ class _BuddyPageState extends State<BuddyPage> {
             ),
             // 선명한 이미지
             Center(
-              child: Transform.scale(
-                scale: 0.85,
-                child: Image.asset(
-                  plant['icon'],
-                  filterQuality: FilterQuality.high,
-                ),
+              child: Image.asset(
+                fit: BoxFit.contain,
+                plant['icon'],
+                filterQuality: FilterQuality.high,
               ),
             ),
           ],

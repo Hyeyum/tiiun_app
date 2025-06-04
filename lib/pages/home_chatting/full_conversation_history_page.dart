@@ -86,104 +86,121 @@ class _FullConversationHistoryPageState extends ConsumerState<FullConversationHi
   Widget build(BuildContext context) {
     return Container(
       color: Colors.white,
-      // padding: EdgeInsets.symmetric(horizontal: 20),
       child: Stack(
         children: [
           Scaffold(
             backgroundColor: Colors.white,
-            appBar: AppBar(
-              toolbarHeight: 56,
-              backgroundColor: Colors.white,
-              elevation: 0,
-              leading: Container(
-                child: IconButton(
-                  icon: SvgPicture.asset(
-                    'assets/icons/functions/back.svg',
-                    width: 24,
-                    height: 24,
+            body: CustomScrollView(
+              slivers: [
+                SliverAppBar(
+                  toolbarHeight: 56,
+                  backgroundColor: Colors.white,
+                  foregroundColor: Colors.white,
+                  elevation: 0,
+                  scrolledUnderElevation: 0,
+                  floating: false,
+                  pinned: false, // true로 하면 완전히 사라지지 않고 일부만 남음
+                  snap: false,
+                  leading: Container(
+                    child: IconButton(
+                      icon: SvgPicture.asset(
+                        'assets/icons/functions/back.svg',
+                        width: 24,
+                        height: 24,
+                      ),
+                      onPressed: () => Navigator.pop(context),
+                    ),
                   ),
-                  onPressed: () => Navigator.pop(context),
+                  actions: [
+                    Container(
+                      margin: EdgeInsets.only(right: 10),
+                      child: IconButton(
+                        icon: SvgPicture.asset(
+                          'assets/icons/functions/icon_dialog.svg',
+                          width: 24,
+                          height: 24,
+                          colorFilter: const ColorFilter.mode(AppColors.grey600, BlendMode.srcIn),
+                        ),
+                        onPressed: () {
+                          setState(() {
+                            _conversations.removeWhere((item) => item.conversationId == _addNewItemId);
+                          });
+                        },
+                      ),
+                    ),
+                  ],
                 ),
-              ),
-              actions: [
-                IconButton(
-                  icon: SvgPicture.asset(
-                    'assets/icons/functions/icon_dialog.svg',
-                    width: 24,
-                    height: 24,
-                    colorFilter: const ColorFilter.mode(AppColors.grey600, BlendMode.srcIn),
+                SliverToBoxAdapter(
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 20.0),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        SizedBox(height: 12),
+                        Text(
+                          '대화 리포트',
+                          style: AppTypography.h5.withColor(AppColors.grey900),
+                        ),
+                        SizedBox(height: 8),
+                        Text(
+                          '틔운이 기억한 대화 주제들이에요!\n틔운이 잘못 알고 있는 부분은 수정해주세요.',
+                          style: AppTypography.b1.withColor(AppColors.grey700),
+                        ),
+                        const SizedBox(height: 10),
+                      ],
+                    ),
                   ),
-                  onPressed: () {
-                    setState(() {
-                      _conversations.removeWhere((item) => item.conversationId == _addNewItemId);
-                    });
-                  },
+                ),
+                _conversations.isEmpty && !_conversations.any((item) => item.conversationId == _addNewItemId)
+                    ? SliverFillRemaining(
+                  child: Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        SvgPicture.asset(
+                          'assets/icons/functions/icon_dialog.svg',
+                          width: 48,
+                          height: 48,
+                          colorFilter: const ColorFilter.mode(
+                            AppColors.grey300,
+                            BlendMode.srcIn,
+                          ),
+                        ),
+                        const SizedBox(height: 16),
+                        Text(
+                          '아직 대화 기록이 없습니다',
+                          style: AppTypography.b2.withColor(AppColors.grey600),
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          '대화를 시작하여 기록을 남겨보세요!',
+                          style: AppTypography.c2.withColor(AppColors.grey400),
+                        ),
+                      ],
+                    ),
+                  ),
+                )
+                    : SliverList(
+                  delegate: SliverChildBuilderDelegate(
+                        (context, index) {
+                      final conversation = _conversations[index];
+                      if (conversation.conversationId == _addNewItemId) {
+                        return Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 20.0),
+                          child: _buildAddConversationButton(),
+                        );
+                      }
+                      return Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 20.0),
+                        child: _buildConversationItem(conversation),
+                      );
+                    },
+                    childCount: _conversations.length,
+                  ),
                 ),
               ],
             ),
-            body: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20.0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  SizedBox(height: 12,),
-
-                  Text(
-                    '대화 리포트',
-                    style: AppTypography.h5.withColor(AppColors.grey900),
-                  ),
-                  SizedBox(height: 8,),
-
-                  Text(
-                    '틔운이 기억한 대화 주제들이에요!\n틔운이 잘못 알고 있는 부분은 수정해주세요.',
-                    style: AppTypography.b1.withColor(AppColors.grey700),
-                  ),
-                  const SizedBox(height: 10),
-                  Expanded(
-                    child: _conversations.isEmpty && !_conversations.any((item) => item.conversationId == _addNewItemId)
-                        ? Center(
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          SvgPicture.asset(
-                            'assets/icons/functions/icon_dialog.svg',
-                            width: 48,
-                            height: 48,
-                            colorFilter: const ColorFilter.mode(
-                              AppColors.grey300,
-                              BlendMode.srcIn,
-                            ),
-                          ),
-                          const SizedBox(height: 16),
-                          Text(
-                            '아직 대화 기록이 없습니다',
-                            style: AppTypography.b2.withColor(AppColors.grey600),
-                          ),
-                          const SizedBox(height: 8),
-                          Text(
-                            '대화를 시작하여 기록을 남겨보세요!',
-                            style: AppTypography.c2.withColor(AppColors.grey400),
-                          ),
-                        ],
-                      ),
-                    )
-                        : ListView.builder(
-                      // padding: const EdgeInsets.symmetric(horizontal: 20),
-                      itemCount: _conversations.length,
-                      itemBuilder: (context, index) {
-                        final conversation = _conversations[index];
-                        if (conversation.conversationId == _addNewItemId) {
-                          return _buildAddConversationButton();
-                        }
-                        return _buildConversationItem(conversation);
-                      },
-                    ),
-                  ),
-                ],
-              ),
-            ),
           ),
-          // 팝업을 최상위로 이동
           if (_showPopup) _buildOverlayPopup(),
         ],
       ),
