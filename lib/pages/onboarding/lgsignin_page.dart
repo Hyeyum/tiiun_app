@@ -285,7 +285,7 @@ class _LGSigninPageState extends State<LGSigninPage> {
       child: TextFormField(
         controller: controller,
         keyboardType: keyboardType,
-        style: AppTypography.b1,
+        style: AppTypography.b1.withColor(AppColors.grey900),
         decoration: InputDecoration(
           hintText: hintText,
           hintStyle: AppTypography.b1.withColor(AppColors.grey400,),
@@ -327,7 +327,7 @@ class _LGSigninPageState extends State<LGSigninPage> {
           TextFormField(
             controller: _passwordController,
             obscureText: _obscurePassword,
-            style: AppTypography.b2,
+            style: AppTypography.b1.withColor(AppColors.grey900),
             decoration: InputDecoration(
               hintText: '패스워드 입력',
               hintStyle: AppTypography.b1.withColor(AppColors.grey400,),

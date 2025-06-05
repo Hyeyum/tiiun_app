@@ -9,6 +9,7 @@ import 'package:tiiun/pages/mypage/my_setting_notification.dart';
 import 'package:tiiun/pages/mypage/my_setting_profile.dart';
 import 'package:tiiun/pages/mypage/my_setting_scrap.dart';
 import 'package:tiiun/pages/mypage/my_setting_serviceinfo.dart';
+import 'package:tiiun/pages/mypage/my_setting_subscribe.dart';
 
 class SettingsPage extends StatelessWidget {
   const SettingsPage({super.key});
@@ -187,10 +188,16 @@ class SettingsPage extends StatelessWidget {
                 ),
                 _buildDivider(),
                 _buildMenuItem(
-                  iconPath: 'assets/icons/functions/icon_chat.svg',
+                  iconPath: 'assets/icons/functions/Credit_Card_01.svg',
                   title: '유료 구독',
                   onTap: () {
                     // 유료 구독 페이지로 이동
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => const MySettingSubscribePage(),
+                      ),
+                    );
                   },
                 ),
                 _buildDivider(),
