@@ -1,4 +1,4 @@
-# myapp
+# lib.zip 이 백앤드 구현완료된거임
 
 A new Flutter project.
 
