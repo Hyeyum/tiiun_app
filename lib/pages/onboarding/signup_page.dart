@@ -470,7 +470,7 @@ class _SignupPageState extends State<SignupPage> {
       child: TextFormField(
         controller: controller,
         keyboardType: keyboardType,
-        style: AppTypography.b1,
+        style: AppTypography.b1.withColor(AppColors.grey900),
         decoration: InputDecoration(
           hintText: hintText,
           hintStyle: AppTypography.b1.withColor(AppColors.grey400,),
@@ -513,7 +513,7 @@ class _SignupPageState extends State<SignupPage> {
           TextFormField(
             controller: _passwordController,
             obscureText: _obscurePassword,
-            style: AppTypography.b2,
+            style: AppTypography.b1.withColor(AppColors.grey900),
             decoration: InputDecoration(
               hintText: '비밀번호 입력 (숫자, 영문 포함 8자 이상)',
               hintStyle: AppTypography.b1.withColor(AppColors.grey400,),
@@ -579,7 +579,7 @@ class _SignupPageState extends State<SignupPage> {
           TextFormField(
             controller: _passwordConfirmController,
             obscureText: _obscurePasswordConfirm,
-            style: AppTypography.b2,
+            style: AppTypography.b1.withColor(AppColors.grey900),
             decoration: InputDecoration(
               hintText: '동일한 비밀번호 입력',
               hintStyle: AppTypography.b1.withColor(AppColors.grey400,),
