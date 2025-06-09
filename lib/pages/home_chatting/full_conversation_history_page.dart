@@ -16,60 +16,84 @@ class FullConversationHistoryPage extends ConsumerStatefulWidget {
 }
 
 class _FullConversationHistoryPageState extends ConsumerState<FullConversationHistoryPage> {
-  final List<ConversationModel> _conversations = [
-    ConversationModel(
-      conversationId: 'dummy_1',
+  final List<Conversation> _conversations = [
+    Conversation(
+      id: 'dummy_1',
       userId: 'dummy_user_id',
+      title: '이태희 팀장',
       createdAt: DateTime.now().subtract(const Duration(days: 2, hours: 6)),
       updatedAt: DateTime.now().subtract(const Duration(days: 2, hours: 5)),
+      lastMessage: '히스테릭하다. 나이가 많다. 태진님을 지속적으로 괴롭히고 있다.',
+      lastMessageAt: DateTime.now().subtract(const Duration(days: 2, hours: 5)),
       plantId: 'default_plant',
       summary: '이태희 팀장: 히스테릭하다.\n나이가 많다.\n태진님을 지속적으로 괴롭히고 있다.',
       messageCount: 5,
+      agentId: 'default_agent',
     ),
-    ConversationModel(
-      conversationId: 'dummy_2',
+    Conversation(
+      id: 'dummy_2',
       userId: 'dummy_user_id',
+      title: '김지윤 대리',
       createdAt: DateTime.now().subtract(const Duration(days: 5, hours: 11)),
       updatedAt: DateTime.now().subtract(const Duration(days: 5, hours: 10)),
+      lastMessage: '시은님에게 종종 잘해준다. 딸기 라떼를 좋아한다.',
+      lastMessageAt: DateTime.now().subtract(const Duration(days: 5, hours: 10)),
       plantId: 'default_plant',
       summary: '김지윤 대리: 시은님에게 종종 잘해준다.\n딸기 라떼를 좋아한다.',
       messageCount: 8,
+      agentId: 'default_agent',
     ),
-    ConversationModel(
-      conversationId: 'dummy_3',
+    Conversation(
+      id: 'dummy_3',
       userId: 'dummy_user_id',
+      title: '일로일로 프로젝트',
       createdAt: DateTime.now().subtract(const Duration(days: 10, hours: 4)),
       updatedAt: DateTime.now().subtract(const Duration(days: 10, hours: 3)),
+      lastMessage: '시은님은 기획을 담당하고 있다. 5월 29일이 마감일이다.',
+      lastMessageAt: DateTime.now().subtract(const Duration(days: 10, hours: 3)),
       plantId: 'default_plant',
       summary: '일로일로 프로젝트: 시은님은 기획을 담당하고 있다.\n5월 29일이 마감일이다.',
       messageCount: 12,
+      agentId: 'default_agent',
     ),
-    ConversationModel(
-      conversationId: 'dummy_4',
+    Conversation(
+      id: 'dummy_4',
       userId: 'dummy_user_id',
+      title: 'A 기업 이직 준비',
       createdAt: DateTime.now().subtract(const Duration(days: 15, hours: 9)),
       updatedAt: DateTime.now().subtract(const Duration(days: 15, hours: 8)),
+      lastMessage: '5월 29일에 서류 마감이었다. 회사 업무로 인해 이직 준비에 소홀해 아쉽다.',
+      lastMessageAt: DateTime.now().subtract(const Duration(days: 15, hours: 8)),
       plantId: 'default_plant',
       summary: 'A 기업 이직 준비: 5월 29일에 서류 마감이었다.\n회사 업무로 인해 이직 준비에 소홀해 아쉽다.\n면접 준비는 AI와 함께 진행하고 있다.',
       messageCount: 7,
+      agentId: 'default_agent',
     ),
-    ConversationModel(
-      conversationId: 'dummy_5',
+    Conversation(
+      id: 'dummy_5',
       userId: 'dummy_user_id',
+      title: '버거킹 명동점',
       createdAt: DateTime.now().subtract(const Duration(days: 15, hours: 9)),
       updatedAt: DateTime.now().subtract(const Duration(days: 15, hours: 8)),
+      lastMessage: '시은님은 불고기 버거를 좋아한다. 해당 매장이 깨끗해서 자주 방문한다.',
+      lastMessageAt: DateTime.now().subtract(const Duration(days: 15, hours: 8)),
       plantId: 'default_plant',
       summary: '버거킹 명동점: 시은님은 불고기 버거를 좋아한다.\n해당 매장이 깨끗해서 자주 방문한다.',
       messageCount: 7,
+      agentId: 'default_agent',
     ),
-    ConversationModel(
-      conversationId: 'dummy_6',
+    Conversation(
+      id: 'dummy_6',
       userId: 'dummy_user_id',
+      title: '맥도날드 명동점',
       createdAt: DateTime.now().subtract(const Duration(days: 15, hours: 9)),
       updatedAt: DateTime.now().subtract(const Duration(days: 15, hours: 8)),
+      lastMessage: '해당 매장은 직원이 불친절하다. 음식은 맛있으나 왠지 가기 싫어한다.',
+      lastMessageAt: DateTime.now().subtract(const Duration(days: 15, hours: 8)),
       plantId: 'default_plant',
       summary: '맥도날드 명동점: 해당 매장은 직원이 불친절하다.\n음식은 맛있으나 왠지 가기 싫어한다.',
       messageCount: 7,
+      agentId: 'default_agent',
     ),
   ];
 
@@ -123,7 +147,7 @@ class _FullConversationHistoryPageState extends ConsumerState<FullConversationHi
                         ),
                         onPressed: () {
                           setState(() {
-                            _conversations.removeWhere((item) => item.conversationId == _addNewItemId);
+                            _conversations.removeWhere((item) => item.id == _addNewItemId);
                           });
                         },
                       ),
@@ -151,7 +175,7 @@ class _FullConversationHistoryPageState extends ConsumerState<FullConversationHi
                     ),
                   ),
                 ),
-                _conversations.isEmpty && !_conversations.any((item) => item.conversationId == _addNewItemId)
+                _conversations.isEmpty && !_conversations.any((item) => item.id == _addNewItemId)
                     ? SliverFillRemaining(
                   child: Center(
                     child: Column(
@@ -184,7 +208,7 @@ class _FullConversationHistoryPageState extends ConsumerState<FullConversationHi
                   delegate: SliverChildBuilderDelegate(
                         (context, index) {
                       final conversation = _conversations[index];
-                      if (conversation.conversationId == _addNewItemId) {
+                      if (conversation.id == _addNewItemId) {
                         return Padding(
                           padding: const EdgeInsets.symmetric(horizontal: 20.0),
                           child: _buildAddConversationButton(),
@@ -231,7 +255,7 @@ class _FullConversationHistoryPageState extends ConsumerState<FullConversationHi
     );
   }
 
-  Widget _buildConversationItem(ConversationModel conversation) {
+  Widget _buildConversationItem(Conversation conversation) {
     // summary에서 제목과 내용 분리 (': '를 기준으로)
     String title = '대화 주제';
     String content = conversation.summary ?? '새로운 대화';
@@ -273,17 +297,21 @@ class _FullConversationHistoryPageState extends ConsumerState<FullConversationHi
                       ),
                       onPressed: () {
                         setState(() {
-                          bool isAddButtonPresent = _conversations.any((item) => item.conversationId == _addNewItemId);
+                          bool isAddButtonPresent = _conversations.any((item) => item.id == _addNewItemId);
 
                           if (isAddButtonPresent) {
-                            _conversations.removeWhere((item) => item.conversationId == _addNewItemId);
+                            _conversations.removeWhere((item) => item.id == _addNewItemId);
                           } else {
-                            _conversations.insert(0, ConversationModel(
-                              conversationId: _addNewItemId,
+                            _conversations.insert(0, Conversation(
+                              id: _addNewItemId,
                               userId: '',
+                              title: '새 대화',
                               createdAt: DateTime.now(),
                               updatedAt: DateTime.now(),
+                              lastMessage: '',
+                              lastMessageAt: DateTime.now(),
                               messageCount: 0,
+                              agentId: 'default',
                             ));
                           }
                         });

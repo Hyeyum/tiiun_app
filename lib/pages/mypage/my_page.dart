@@ -251,7 +251,7 @@ class MyPage extends StatelessWidget {
                             child: Container(
                               padding: EdgeInsets.symmetric(horizontal: 20, vertical: 12),
                               child:
-                                Text('콜렉션', style: AppTypography.s1.withColor(AppColors.grey900),
+                              Text('콜렉션', style: AppTypography.s1.withColor(AppColors.grey900),
                               ),
                             ),
                           ),

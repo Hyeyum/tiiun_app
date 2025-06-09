@@ -1,4 +1,3 @@
-// lib/pages/activity_detail_page.dart
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:tiiun/design_system/colors.dart';
@@ -141,7 +140,7 @@ class ActivityDetailPage extends StatelessWidget {
           // 하단 고정 버튼
           Container(
             margin: const EdgeInsets.fromLTRB(20, 0, 20, 0), // 주변 여백
-            child: Container(
+            child: Container( // 두 번째 코드와 동일하게 GestureDetector 대신 Container로 감싸기
               width: double.infinity,
               height: 48,
               decoration: BoxDecoration(

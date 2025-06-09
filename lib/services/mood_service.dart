@@ -3,25 +3,25 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:uuid/uuid.dart';
 import '../models/mood_record_model.dart'; // MoodRecord 모델이 이미 수정되었다고 가정
-import 'firebase_service.dart'; // FirebaseService로 변경
+import 'auth_service.dart';
 import '../utils/encoding_utils.dart'; // Import EncodingUtils for mood, note, tags
 
 // Provider for the mood service
 final moodServiceProvider = Provider<MoodService>((ref) {
-  final firebaseService = FirebaseService(); // FirebaseService 직접 생성
-  return MoodService(firebaseService);
+  final authService = ref.watch(authServiceProvider);
+  return MoodService(authService);
 });
 
 class MoodService {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
-  final FirebaseService _firebaseService; // FirebaseService로 변경
+  final AuthService _authService;
   final Uuid _uuid = const Uuid();
 
-  MoodService(this._firebaseService); // FirebaseService로 변경
+  MoodService(this._authService);
 
   // 사용자의 감정 기록 스트림 가져오기
   Stream<List<MoodRecord>> getUserMoodRecords() {
-    final userId = _firebaseService.currentUserId; // FirebaseService 메서드 사용
+    final userId = _authService.getCurrentUserId();
     if (userId == null) {
       return Stream.value([]);
     }
@@ -43,7 +43,7 @@ class MoodService {
     String? notes, // note -> notes
     String? conversationId, // conversation_id 추가
   }) async {
-    final userId = _firebaseService.currentUserId; // FirebaseService 메서드 사용
+    final userId = _authService.getCurrentUserId();
     if (userId == null) {
       throw Exception('사용자 로그인이 필요합니다');
     }
@@ -79,7 +79,7 @@ class MoodService {
 
   // 감정 기록 삭제
   Future<void> deleteMoodRecord(String recordId) async {
-    await _firestore.collection('mood_tracking').doc(recordId).delete(); // 컬렉션명 mood_tracking (스키마 반영)
+    await _firestore.collection('mood_tracking').doc(recordId).delete(); // 컬렉션명 mood_tracking (스키मा 반영)
   }
 
   // 감정 기록 업데이트
@@ -112,7 +112,7 @@ class MoodService {
 
   // 특정 기간의 감정 기록 가져오기
   Future<List<MoodRecord>> getMoodRecordsByPeriod(int days) async {
-    final userId = _firebaseService.currentUserId; // FirebaseService 메서드 사용
+    final userId = _authService.getCurrentUserId();
     if (userId == null) {
       throw Exception('사용자 로그인이 필요합니다');
     }

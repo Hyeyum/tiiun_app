@@ -434,7 +434,7 @@ class BuddyDiaryPage extends StatelessWidget {
                       borderRadius: BorderRadius.circular(12),
                       child: Image.asset(
                         imageUrl,
-                        fit: BoxFit.contain,
+                        fit: BoxFit.cover,
                         filterQuality: FilterQuality.high,
                         errorBuilder: (context, error, stackTrace) {
                           return Container(

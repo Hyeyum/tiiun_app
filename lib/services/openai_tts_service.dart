@@ -9,6 +9,7 @@ import 'package:uuid/uuid.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:tiiun/services/remote_config_service.dart';
+import 'package:tiiun/services/api_quota_manager.dart'; // 할당량 관리자 추가
 import 'package:tiiun/utils/error_handler.dart'; // Import ErrorHandler
 import 'package:tiiun/utils/logger.dart'; // Import AppLogger
 
@@ -44,23 +45,21 @@ class NetworkException extends AppError { // Inherit from AppError
 final openAiTtsServiceProvider = Provider<OpenAiTtsService>((ref) {
   final remoteConfigService = ref.watch(remoteConfigServiceProvider);
   final apiKey = remoteConfigService.getOpenAIApiKey();
-  return OpenAiTtsService(apiKey: apiKey);
+  return OpenAiTtsService(apiKey: apiKey, remoteConfigService: remoteConfigService);
 });
 
 
 class OpenAiTtsService {
   final String _apiKey;
+  final RemoteConfigService _remoteConfigService; // Remote Config 추가
   final Uuid _uuid = const Uuid();
   final Connectivity _connectivity = Connectivity();
 
   // API Endpoint
   final String _ttsApiUrl = 'https://api.openai.com/v1/audio/speech';
 
-  // Retry constants
-  static const int _maxRetries = 3;
-  static const Duration _retryDelay = Duration(seconds: 2);
-
-  OpenAiTtsService({required String apiKey}) : _apiKey = apiKey;
+  OpenAiTtsService({required String apiKey, required RemoteConfigService remoteConfigService})
+      : _apiKey = apiKey, _remoteConfigService = remoteConfigService;
 
   Future<bool> _checkInternetConnection() async {
     var connectivityResult = await _connectivity.checkConnectivity();
@@ -73,12 +72,22 @@ class OpenAiTtsService {
   /// Throws [OpenAiTtsApiException] for API errors or other issues during TTS generation.
   Future<String> generateSpeech({
     required String text,
-    String model = 'tts-1', // 'tts-1' or 'tts-1-hd'
+    String? model, // 선택적 모델 (기본값은 Remote Config에서)
     String voice = 'alloy', // 'alloy', 'echo', 'fable', 'onyx', 'nova', 'shimmer'
     String responseFormat = 'mp3', // 'mp3', 'opus', 'aac', 'flac'
     double speed = 1.0, // 0.25 to 4.0
   }) async {
-    return ErrorHandler.safeApiCall(() async { // Use safeApiCall for network operations
+    return ErrorHandler.safeApiCall(() async {
+      // 할당량 관리 확인
+      if (_remoteConfigService.isQuotaManagementEnabled()) {
+        if (!await ApiQuotaManager.canMakeTtsCall()) {
+          final quota = await ApiQuotaManager.getRemainingQuota();
+          throw OpenAiTtsApiException(
+              'TTS 일일 할당량을 초과했습니다. 남은 횟수: ${quota['tts_remaining']}'
+          );
+        }
+      }
+
       if (!await _checkInternetConnection()) {
         throw NetworkException('인터넷 연결이 필요합니다. OpenAI TTS는 인터넷 연결이 필요합니다.');
       }
@@ -87,8 +96,13 @@ class OpenAiTtsService {
         throw OpenAiTtsApiException('OpenAI API 키가 설정되지 않았습니다. Firebase Remote Config에서 설정해주세요.');
       }
 
+      // Remote Config에서 설정 가져오기
+      final maxRetries = _remoteConfigService.getMaxRetries();
+      final retryDelay = Duration(seconds: _remoteConfigService.getRetryDelaySeconds());
+      final ttsModel = model ?? _remoteConfigService.getTtsModel();
+
       int attempt = 0;
-      while (attempt < _maxRetries) {
+      while (attempt < maxRetries) {
         try {
           final headers = {
             'Authorization': 'Bearer $_apiKey',
@@ -96,7 +110,7 @@ class OpenAiTtsService {
           };
 
           final body = jsonEncode({
-            'model': model,
+            'model': ttsModel,
             'input': text,
             'voice': voice,
             'response_format': responseFormat,
@@ -113,6 +127,11 @@ class OpenAiTtsService {
           });
 
           if (response.statusCode == 200) {
+            // 성공시 할당량 기록
+            if (_remoteConfigService.isQuotaManagementEnabled()) {
+              await ApiQuotaManager.recordTtsCall();
+            }
+
             final tempDir = await getTemporaryDirectory();
             final filePath = '${tempDir.path}/${_uuid.v4()}.$responseFormat';
             final file = File(filePath);
@@ -131,41 +150,49 @@ class OpenAiTtsService {
             }
             AppLogger.error('OpenAiTtsService: OpenAI TTS API Error (${response.statusCode}): $errorMessage');
 
+            // 429 오류 처리
+            if (response.statusCode == 429) {
+              if (_remoteConfigService.isQuotaManagementEnabled()) {
+                ApiQuotaManager.handleQuotaExceeded();
+              }
+              throw OpenAiTtsApiException(errorMessage, statusCode: response.statusCode);
+            }
+
             if (response.statusCode == 401) {
               throw OpenAiTtsApiException('권한 없음. OpenAI API 키를 확인해주세요.', statusCode: response.statusCode);
             }
             // Retry for rate limits or server errors
-            if (response.statusCode == 429 || response.statusCode >= 500) {
+            if (response.statusCode >= 500) {
               throw OpenAiTtsApiException(errorMessage, statusCode: response.statusCode);
             }
             throw OpenAiTtsApiException(errorMessage, statusCode: response.statusCode);
           }
         } on SocketException catch (e, stackTrace) {
           AppLogger.error('OpenAiTtsService: Network error during OpenAI TTS request (Attempt ${attempt + 1}): $e', e, stackTrace);
-          if (attempt + 1 >= _maxRetries) {
+          if (attempt + 1 >= maxRetries) {
             throw NetworkException('네트워크 오류: ${e.message}', originalException: e);
           }
         } on TimeoutException catch (e, stackTrace) {
           AppLogger.error('OpenAiTtsService: Timeout error during OpenAI TTS request (Attempt ${attempt + 1}): $e', e, stackTrace);
-          if (attempt + 1 >= _maxRetries) {
+          if (attempt + 1 >= maxRetries) {
             throw NetworkException('요청 시간이 초과되었습니다: ${e.message}', originalException: e);
           }
         } on OpenAiTtsApiException catch (e, stackTrace) {
           // Use e.statusCode directly now that the getter is defined
           if (e.statusCode == 429 || (e.statusCode != null && e.statusCode! >= 500)) {
             AppLogger.warning('OpenAiTtsService: OpenAI TTS API error (Attempt ${attempt + 1}), retrying: ${e.message}', e, stackTrace);
-            if (attempt + 1 >= _maxRetries) rethrow; // Rethrow after max retries
+            if (attempt + 1 >= maxRetries) rethrow; // Rethrow after max retries
           } else {
             rethrow; // Rethrow other API errors immediately
           }
         } catch (e, stackTrace) {
           AppLogger.error('OpenAiTtsService: Unexpected error during OpenAI TTS request (Attempt ${attempt + 1}): $e', e, stackTrace);
-          if (attempt + 1 >= _maxRetries) {
+          if (attempt + 1 >= maxRetries) {
             throw OpenAiTtsApiException('예상치 못한 오류가 발생했습니다: ${e.toString()}', originalException: e);
           }
         }
         attempt++;
-        await Future.delayed(_retryDelay);
+        await Future.delayed(retryDelay);
       }
       throw OpenAiTtsApiException('여러 번의 재시도 후 음성 생성에 실패했습니다.');
     });

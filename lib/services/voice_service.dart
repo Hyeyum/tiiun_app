@@ -13,7 +13,7 @@ import 'package:record/record.dart' as record_pkg;
 import 'package:permission_handler/permission_handler.dart';
 import 'package:flutter/foundation.dart';
 
-import 'firebase_service.dart'; // FirebaseService로 변경
+import 'auth_service.dart';
 import '../utils/simple_speech_recognizer.dart';
 import '../utils/encoding_utils.dart';
 import 'whisper_service.dart';
@@ -34,13 +34,13 @@ class VoiceServiceException implements Exception {
 
 // Provider for the voice service
 final voiceServiceProvider = Provider<VoiceService>((ref) {
-  final firebaseService = FirebaseService(); // FirebaseService 직접 생성
+  final authService = ref.watch(authServiceProvider);
   final remoteConfigService = ref.watch(remoteConfigServiceProvider);
   final openAIapiKey = remoteConfigService.getOpenAIApiKey();
   if (openAIapiKey.isEmpty) {
     AppLogger.warning('OPENAI_API_KEY is not set. OpenAI features will be limited.');
   }
-  return VoiceService(firebaseService, openAIapiKey);
+  return VoiceService(authService, openAIapiKey, remoteConfigService);
 });
 
 class VoiceService {
@@ -48,7 +48,8 @@ class VoiceService {
   final flutter_tts_alias.FlutterTts _flutterTts = flutter_tts_alias.FlutterTts(); // Use prefix
   final AudioPlayer _audioPlayer = AudioPlayer();
   final Uuid _uuid = const Uuid();
-  final FirebaseService? _firebaseService; // FirebaseService로 변경
+  final AuthService? _authService;
+  final RemoteConfigService _remoteConfigService;
   final Connectivity _connectivity = Connectivity();
   final record_pkg.AudioRecorder _recorder = record_pkg.AudioRecorder();
   final SimpleSpeechRecognizer _speechRecognizer = SimpleSpeechRecognizer();
@@ -72,9 +73,9 @@ class VoiceService {
   Stream<String> get onDeviceTranscriptionStream => _speechRecognizer.transcriptionStream;
 
   // Constructor
-  VoiceService(this._firebaseService, this._openAIapiKey) // FirebaseService로 변경
+  VoiceService(this._authService, this._openAIapiKey, this._remoteConfigService)
       : whisperService = WhisperService(apiKey: _openAIapiKey),
-        openAiTtsService = OpenAiTtsService(apiKey: _openAIapiKey) {
+        openAiTtsService = OpenAiTtsService(apiKey: _openAIapiKey, remoteConfigService: _remoteConfigService) {
     AppLogger.info('VoiceService: Initializing...');
     _initConnectivityListener();
     _initFlutterTts();
@@ -82,10 +83,10 @@ class VoiceService {
   }
 
   // Private empty constructor for `VoiceService.empty()` factory
-  VoiceService._empty(this._openAIapiKey)
-      : _firebaseService = null, // FirebaseService로 변경
+  VoiceService._empty(this._openAIapiKey, this._remoteConfigService)
+      : _authService = null,
         whisperService = WhisperService(apiKey: _openAIapiKey),
-        openAiTtsService = OpenAiTtsService(apiKey: _openAIapiKey) {
+        openAiTtsService = OpenAiTtsService(apiKey: _openAIapiKey, remoteConfigService: _remoteConfigService) {
     AppLogger.debug("VoiceService initialized in empty/fallback state.");
     _initConnectivityListener();
     _initFlutterTts();
@@ -95,7 +96,8 @@ class VoiceService {
   // Factory constructor for testing or specific fallback scenarios
   factory VoiceService.empty() {
     const String apiKey = String.fromEnvironment('OPENAI_API_KEY', defaultValue: '');
-    return VoiceService._empty(apiKey);
+    final remoteConfigService = RemoteConfigService(); // Create a default instance
+    return VoiceService._empty(apiKey, remoteConfigService);
   }
 
   void _initConnectivityListener() {
@@ -287,9 +289,10 @@ class VoiceService {
     }
   }
 
+
   Future<String> uploadVoiceFile(String filePath) async {
     return ErrorHandler.safeFuture(() async {
-      final userId = _firebaseService?.currentUserId; // FirebaseService 메서드 사용
+      final userId = _authService?.getCurrentUserId();
       if (userId == null) {
         throw VoiceServiceException('User not logged in. Cannot upload voice file.');
       }
@@ -519,7 +522,7 @@ class VoiceService {
 
           String resultUrl = audioFilePath;
           String source = 'openai_local';
-          final userId = _firebaseService?.currentUserId; // FirebaseService 메서드 사용
+          final userId = _authService?.getCurrentUserId();
 
           // Firebase Storage 업로드 비활성화 (로컬 파일만 사용)
           // Firebase 업로드를 원하면 이 주석을 제거하세요

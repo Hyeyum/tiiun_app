@@ -3,9 +3,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:langchain/langchain.dart';
 import 'package:langchain_openai/langchain_openai.dart';
 import 'dart:convert';
-import '../models/conversation_model.dart';
-import '../models/message_model.dart'; // MessageModel import
-import 'firebase_service.dart'; // FirebaseService로 변경
+import '../models/conversation_model.dart' as app_models;
+import '../models/message_model.dart' as app_models; // app_models prefix로 변경
+import 'auth_service.dart';
 import 'voice_service.dart';
 import 'conversation_service.dart';
 import 'package:flutter/foundation.dart';
@@ -13,12 +13,12 @@ import 'package:tiiun/services/remote_config_service.dart';
 
 // LangChain 서비스 Provider
 final langchainServiceProvider = Provider<LangchainService>((ref) {
-  final firebaseService = FirebaseService(); // FirebaseService 직접 생성
+  final authService = ref.watch(authServiceProvider);
   final voiceService = ref.watch(voiceServiceProvider);
   final conversationService = ref.watch(conversationServiceProvider);
   final remoteConfigService = ref.watch(remoteConfigServiceProvider);
   final openAIapiKey = remoteConfigService.getOpenAIApiKey();
-  return LangchainService(firebaseService, voiceService, conversationService, openAIapiKey);
+  return LangchainService(authService, voiceService, conversationService, openAIapiKey);
 });
 
 class LangchainResponse {
@@ -38,7 +38,7 @@ class LangchainResponse {
 }
 
 class LangchainService {
-  final FirebaseService _firebaseService; // FirebaseService로 변경
+  final AuthService _authService;
   final VoiceService _voiceService;
   final ConversationService _conversationService;
   final String _openAIapiKey; // Store the API key
@@ -46,7 +46,7 @@ class LangchainService {
   ChatOpenAI? _chatModel;
 
   LangchainService(
-      this._firebaseService, // FirebaseService로 변경
+      this._authService,
       this._voiceService,
       this._conversationService,
       this._openAIapiKey, // Receive API key
@@ -59,9 +59,9 @@ class LangchainService {
     if (_openAIapiKey.isNotEmpty) {
       _chatModel = ChatOpenAI(
         apiKey: _openAIapiKey,
-        model: 'gpt-4.1-2025-04-14',
+        model: 'gpt-4o', // 🚀 UPGRADED: gpt-3.5-turbo -> gpt-4o
         temperature: 0.7,
-        maxTokens: 1000,
+        maxTokens: 1200, // 🔥 INCREASED: 1000 -> 1200 for better responses
       );
       debugPrint("LangchainService initialized with OpenAI API key.");
     } else {
@@ -75,16 +75,16 @@ class LangchainService {
     required String userMessage,
   }) async {
     try {
-      final userId = _firebaseService.currentUserId; // FirebaseService 메서드 사용
+      final userId = _authService.getCurrentUserId();
       if (userId == null) {
         return _createDefaultResponse('로그인이 필요합니다. 로그인 후 다시 시도해주세요.');
       }
 
       final messagesHistory = await _getConversationHistory(conversationId);
-      final user = await _firebaseService.getUserData(userId); // FirebaseService 메서드 사용
+      final user = await _authService.getUserModel(userId);
 
       // 사용자가 선택한 음성 ID
-      String? selectedVoiceId = user?.preferredVoice ?? 'default'; // null 체크 추가
+      String? selectedVoiceId = user.preferredVoice;
       debugPrint('LangchainService: 사용자 선호 음성 ID - $selectedVoiceId');
 
       // API 키가 설정되지 않았거나 테스트 모드인 경우 (_chatModel 유무로 판단)
@@ -187,7 +187,7 @@ class LangchainService {
   }
 
   Future<String> _generateResponseWithLangChain(
-      List<MessageModel> messageHistory, // MessageModel로 변경
+      List<app_models.Message> messageHistory, // app_models.Message로 명시적 사용
       String userMessage,
       String? appVoiceIdForPrompt, // App-specific voice ID to tailor system prompt
       ) async {
@@ -199,7 +199,7 @@ class LangchainService {
         content: _generateSystemPrompt(appVoiceIdForPrompt ?? 'default'),
       );
       List<ChatMessage> history = messageHistory.map((message) {
-        if (message.sender == 'user') { // String 비교로 변경
+        if (message.sender == app_models.MessageSender.user) { // app_models.MessageSender로 명시적 사용
           return HumanChatMessage(content: message.content);
         } else {
           return AIChatMessage(content: message.content);
@@ -215,7 +215,7 @@ class LangchainService {
     }
   }
 
-  Future<List<MessageModel>> _getConversationHistory(String conversationId) async { // MessageModel로 변경
+  Future<List<app_models.Message>> _getConversationHistory(String conversationId) async { // app_models.Message로 명시적 사용
     final messagesStream = _conversationService.getConversationMessages(conversationId);
     final messages = await messagesStream.first;
     return messages.length > 10 ? messages.sublist(messages.length - 10) : messages;

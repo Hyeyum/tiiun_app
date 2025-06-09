@@ -3,26 +3,26 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:uuid/uuid.dart';
 import '../models/recommendation_model.dart';
-import 'firebase_service.dart'; // FirebaseService로 변경
+import 'auth_service.dart';
 import '../utils/encoding_utils.dart';
 import 'package:flutter/foundation.dart';
 
 // Provider for the recommendation service
 final recommendationServiceProvider = Provider<RecommendationService>((ref) {
-  final firebaseService = FirebaseService(); // FirebaseService 직접 생성
-  return RecommendationService(firebaseService);
+  final authService = ref.watch(authServiceProvider);
+  return RecommendationService(authService);
 });
 
 class RecommendationService {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
-  final FirebaseService _firebaseService; // FirebaseService로 변경
+  final AuthService _authService;
   final Uuid _uuid = const Uuid();
 
-  RecommendationService(this._firebaseService); // FirebaseService로 변경
+  RecommendationService(this._authService);
 
   // 사용자의 추천 활동 스트림 가져오기
   Stream<List<Recommendation>> getUserRecommendations() {
-    final userId = _firebaseService.currentUserId; // FirebaseService 메서드 사용
+    final userId = _authService.getCurrentUserId();
     if (userId == null) {
       return Stream.value([]);
     }
@@ -46,7 +46,7 @@ class RecommendationService {
     String? conversationId, // conversation_id (스키마 반영)
     String? userRating, // user_rating (스키마 반영)
   }) async {
-    final userId = _firebaseService.currentUserId; // FirebaseService 메서드 사용
+    final userId = _authService.getCurrentUserId();
     if (userId == null) {
       throw Exception('사용자 로그인이 필요합니다');
     }
@@ -132,7 +132,7 @@ class RecommendationService {
 
   // 특정 대화의 추천 활동 가져오기
   Future<List<Recommendation>> getRecommendationsByConversation(String conversationId) async {
-    final userId = _firebaseService.currentUserId; // FirebaseService 메서드 사용
+    final userId = _authService.getCurrentUserId();
     if (userId == null) {
       throw Exception('사용자 로그인이 필요합니다');
     }
@@ -154,7 +154,7 @@ class RecommendationService {
 
   // 활동 유형별 추천 가져오기
   Future<List<Recommendation>> getRecommendationsByType(String activityType) async {
-    final userId = _firebaseService.currentUserId; // FirebaseService 메서드 사용
+    final userId = _authService.getCurrentUserId();
     if (userId == null) {
       throw Exception('사용자 로그인이 필요합니다');
     }
@@ -192,7 +192,7 @@ class RecommendationService {
 
   // 추천 통계 가져오기
   Future<Map<String, dynamic>> getRecommendationStats() async {
-    final userId = _firebaseService.currentUserId; // FirebaseService 메서드 사용
+    final userId = _authService.getCurrentUserId();
     if (userId == null) {
       throw Exception('사용자 로그인이 필요합니다');
     }
@@ -248,7 +248,7 @@ class RecommendationService {
 
   // 최근 추천 활동 가져오기 (개수 제한)
   Future<List<Recommendation>> getRecentRecommendations({int limit = 10}) async {
-    final userId = _firebaseService.currentUserId; // FirebaseService 메서드 사용
+    final userId = _authService.getCurrentUserId();
     if (userId == null) {
       throw Exception('사용자 로그인이 필요합니다');
     }
@@ -270,7 +270,7 @@ class RecommendationService {
 
   // 모든 추천 활동 삭제
   Future<void> deleteAllRecommendations() async {
-    final userId = _firebaseService.currentUserId; // FirebaseService 메서드 사용
+    final userId = _authService.getCurrentUserId();
     if (userId == null) {
       throw Exception('사용자 로그인이 필요합니다');
     }

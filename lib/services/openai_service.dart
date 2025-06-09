@@ -105,9 +105,9 @@ class OpenAIService {
           'Authorization': 'Bearer $currentApiKey', // Use the retrieved key
         },
         body: jsonEncode({
-          'model': 'gpt-4.1-2025-04-14',
+          'model': 'gpt-4o', // 🚀 UPGRADED: gpt-3.5-turbo -> gpt-4o
           'messages': messages,
-          'max_tokens': 500,
+          'max_tokens': 800, // 🔥 INCREASED: 500 -> 800 for better responses
           'temperature': 0.7,
           'top_p': 1.0,
           'frequency_penalty': 0.0,

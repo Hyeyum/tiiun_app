@@ -47,19 +47,4 @@ void debugEncoding() {
   debugPrint('decodeFromBase64 결과: $decoded');
   debugPrint('원본과 일치: ${testKorean == decoded}');
 
-  // 깨진 텍스트 복구 테스트
-  debugPrint('=== 깨진 텍스트 복구 테스트 ===');
-  const corruptedText = "Ã¬ÂÂ¸Ã«ÂÂÃ­ÂÂÃ¬ÂÂ¸Ã¬ÂÂ";
-  final fixed = EncodingUtils.fixCorruptedText(corruptedText);
-  debugPrint('깨진 텍스트: $corruptedText');
-  debugPrint('복구 결과: $fixed');
-
-  // tryAllFixMethods 테스트
-  debugPrint('=== tryAllFixMethods 테스트 ===');
-  final allFixed = EncodingUtils.tryAllFixMethods(corruptedText);
-  debugPrint('종합 복구 결과: $allFixed');
-
-  // 한글 문자 수 세기 테스트
-  final koreanCount = EncodingUtils.countKoreanChars(testKorean);
-  debugPrint('한글 문자 수: $koreanCount');
 }

@@ -142,7 +142,7 @@ class MySettingSubscribePage extends StatelessWidget {
                     Align(
                       alignment: Alignment.centerLeft,
                       child: Text(
-'''
+                        '''
 \u{2714} AI 공감형 대화 업그레이드
 \u{2714} 틔운 버디 프리미엄 테마
 \u{2714} 심층 감정 변동 분석
