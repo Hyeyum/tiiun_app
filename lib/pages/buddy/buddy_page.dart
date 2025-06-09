@@ -6,6 +6,7 @@ import 'package:tiiun/pages/buddy/buddy_diary.dart';
 import 'buddy_deco.dart';
 import 'buddy_shop_page.dart';
 import 'buddy_history.dart';
+import 'add_plant_page.dart';
 import 'dart:ui';
 
 class BuddyPage extends StatefulWidget {
@@ -109,6 +110,23 @@ class _BuddyPageState extends State<BuddyPage> {
                       Text('버디', style: AppTypography.s1.withColor(AppColors.grey900)),
                       Row(
                         children: [
+                          GestureDetector(
+                            onTap: () => _navigateToAddPlant(),
+                            child: Container(
+                              width: 22,
+                              height: 22,
+                              decoration: const BoxDecoration(
+                                color: AppColors.main600,
+                                shape: BoxShape.circle,
+                              ),
+                              child: const Icon(
+                                Icons.add,
+                                color: Colors.white,
+                                size: 16,
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 12),
                           GestureDetector(
                             onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const BuddyShopPage())),
                             child: SvgPicture.asset('assets/icons/buddy/Handbag.svg', width: 24, height: 24),
@@ -624,6 +642,14 @@ class _BuddyPageState extends State<BuddyPage> {
     final now = DateTime.now();
     final plantedDate = now.subtract(Duration(days: days));
     return '${plantedDate.year}.${plantedDate.month.toString().padLeft(2, '0')}.${plantedDate.day.toString().padLeft(2, '0')}';
+  }
+
+  // 식물 추가 페이지로 이동
+  void _navigateToAddPlant() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (_) => const AddPlantPage()),
+    );
   }
 
 }

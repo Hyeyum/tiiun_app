@@ -428,10 +428,10 @@ class _SpringBedroomDetailPageState extends State<SpringBedroomDetailPage> {
           decoration: BoxDecoration(
             boxShadow: [
               BoxShadow(
-                color: Color(0xFF131927).withOpacity(0.08),
-                blurRadius: 16,
-                offset: Offset(0, 8),
-                spreadRadius: -6
+                  color: Color(0xFF131927).withOpacity(0.08),
+                  blurRadius: 16,
+                  offset: Offset(0, 8),
+                  spreadRadius: -6
               ),
             ],
           ),

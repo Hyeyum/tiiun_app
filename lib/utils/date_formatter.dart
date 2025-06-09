@@ -161,7 +161,7 @@ class DateFormatter {
     }
   }
 
-  /// 날짜 범위 포맷팅 (yyyy.MM.dd ~yyyy.MM.dd)
+  /// 날짜 범위 포맷팅 (yyyy.MM.dd ~ꯦ.MM.dd)
   static String formatDateRange(DateTime start, DateTime end) {
     final startStr = DateFormat('yyyy.MM.dd').format(start);
     final endStr = DateFormat('yyyy.MM.dd').format(end);

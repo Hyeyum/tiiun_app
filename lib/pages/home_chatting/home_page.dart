@@ -1,31 +1,70 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:tiiun/pages/home_chatting/chatting_page.dart';
 import 'package:tiiun/pages/buddy/buddy_page.dart';
 import 'package:tiiun/pages/home_chatting/conversation_list_page.dart';
 import 'package:tiiun/pages/information/info_page.dart';
 import 'package:tiiun/pages/mypage/my_page.dart';
+import 'package:tiiun/pages/plant/plant_management_page.dart'; // 식물 관리 페이지 추가
+import 'package:tiiun/pages/shopping/shopping_page.dart'; // 쇼핑 페이지 추가
+import 'package:tiiun/pages/shopping/favorites_page.dart'; // 즐겨찾기 페이지 추가
 import 'package:tiiun/design_system/colors.dart';
 import 'package:tiiun/design_system/typography.dart';
 import 'package:tiiun/services/firebase_service.dart';
-import 'package:tiiun/services/openai_service.dart';
+import 'package:tiiun/services/ai_service.dart';
+import 'package:tiiun/services/backend_providers.dart'; // 백엔드 프로바이더 추가
 import 'package:tiiun/models/conversation_model.dart';
+import 'package:tiiun/models/message_model.dart';
 import 'dart:ui';
 import 'package:flutter_svg/flutter_svg.dart';
+import 'package:tiiun/utils/error_handler.dart';
+import 'package:tiiun/utils/logger.dart';
 
-class HomePage extends StatefulWidget {
+class HomePage extends ConsumerStatefulWidget {
   const HomePage({super.key});
 
   @override
-  State<HomePage> createState() => _HomePageState();
+  ConsumerState<HomePage> createState() => _HomePageState();
 }
 
-class _HomePageState extends State<HomePage> {
+class _HomePageState extends ConsumerState<HomePage> {
   final TextEditingController _textController = TextEditingController();
   final ScrollController _scrollController = ScrollController();
-  final FirebaseService _firebaseService = FirebaseService();
   int _selectedIndex = 0;
   bool _showLeftGradient = false;
   bool _showRightGradient = false;
+
+  final List<String> _quickActionMessages = [
+    '이전 대화',
+    '자랑거리',
+    '고민거리',
+    '위로가 필요할 때',
+    '시시콜콜',
+    '끝말 잇기',
+    '화가 나요',
+  ];
+
+  @override
+  void initState() {
+    super.initState();
+    _scrollController.addListener(_onScroll);
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      Future.delayed(const Duration(milliseconds: 100), () {
+        if (_scrollController.hasClients && mounted) {
+          _onScroll();
+        }
+      });
+    });
+  }
+
+  @override
+  void dispose() {
+    _textController.dispose();
+    _scrollController.removeListener(_onScroll);
+    _scrollController.dispose();
+    super.dispose();
+  }
 
   void _goToChatScreen() {
     if (_textController.text.trim().isNotEmpty) {
@@ -45,7 +84,6 @@ class _HomePageState extends State<HomePage> {
 
   void _handleQuickAction(String actionText) async {
     if (actionText == '이전 대화') {
-      // 이전 대화 페이지로 이동
       Navigator.push(
         context,
         MaterialPageRoute(
@@ -53,85 +91,83 @@ class _HomePageState extends State<HomePage> {
         ),
       );
     } else {
-      // 퀵액션으로 새 대화 생성
+      final firebaseService = ref.read(firebaseServiceProvider);
+      final aiService = ref.read(aiServiceProvider);
+
       try {
-        // 로딩 표시
         _showLoadingDialog();
 
-        // 1. 퀵액션으로 대화 시작 (자동으로 첫 메시지 추가됨)
-        final conversation = await _firebaseService.startQuickActionConversation(actionText);
+        final conversation = await firebaseService.createConversation(
+          title: actionText,
+          agentId: 'default_agent',
+        );
 
         if (conversation == null) {
           throw Exception('대화 생성 실패');
         }
 
-        // 2. AI 응답 생성
-        final userMessage = _firebaseService.quickActionMessages[actionText] ?? '안녕하세요!';
-        String aiResponse;
-
-        if (OpenAIService.isApiKeyValid()) {
-          aiResponse = await OpenAIService.getChatResponse(
-            message: userMessage,
-            conversationType: actionText,
-          );
-        } else {
-          // API 키가 없으면 기본 응답 사용
-          aiResponse = _generateFallbackResponse(actionText);
-        }
-
-        // 3. AI 응답 저장
-        await _firebaseService.addMessage(
-          conversationId: conversation.conversationId!,
-          content: aiResponse,
-          sender: 'ai',
+        final userMessageContent = firebaseService.quickActionMessages[actionText] ?? '안녕하세요!';
+        await firebaseService.addMessage(
+          conversationId: conversation.id,
+          content: userMessageContent,
+          sender: MessageSender.user.toString().split('.').last,
         );
 
-        // 로딩 다이얼로그 닫기
+        final aiResponse = await aiService.getResponse(
+          conversationId: conversation.id,
+          userMessage: userMessageContent,
+        );
+
+        await firebaseService.addMessage(
+          conversationId: conversation.id,
+          content: aiResponse.text,
+          sender: MessageSender.agent.toString().split('.').last,
+          type: MessageType.audio.toString().split('.').last,
+        );
+
         if (mounted) Navigator.of(context).pop();
 
-        // 4. 채팅 화면으로 이동
         Navigator.push(
           context,
           MaterialPageRoute(
             builder: (context) => ChatScreen(
-              conversationId: conversation.conversationId!,
+              conversationId: conversation.id,
             ),
           ),
         );
-      } catch (e) {
-        // 로딩 다이얼로그 닫기
+      } on AppError catch (e) {
         if (mounted) Navigator.of(context).pop();
-
-        print('퀵액션 처리 오류: $e');
-
-        // 에러 발생 시 기본 채팅 화면으로 이동
-        final message = _firebaseService.quickActionMessages[actionText] ?? actionText;
+        AppLogger.error('AppError during quick action: ${e.message}', e, e.stackTrace);
+        _showSnackBar('AI 응답 생성 중 오류가 발생했습니다: ${e.message}', AppColors.point900);
         Navigator.push(
           context,
           MaterialPageRoute(
             builder: (context) => ChatScreen(
-              initialMessage: message,
+              initialMessage: firebaseService.quickActionMessages[actionText] ?? actionText,
             ),
           ),
         );
-
-        // 에러 스낵바 표시
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('AI 응답 생성 중 오류가 발생했습니다'),
-            backgroundColor: Colors.orange,
+      } catch (e, stackTrace) {
+        if (mounted) Navigator.of(context).pop();
+        AppLogger.error('Unexpected error during quick action: $e', e, stackTrace);
+        _showSnackBar('AI 응답 생성 중 알 수 없는 오류가 발생했습니다.', AppColors.point900);
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => ChatScreen(
+              initialMessage: firebaseService.quickActionMessages[actionText] ?? actionText,
+            ),
           ),
         );
       }
     }
   }
 
-  // 로딩 다이얼로그 표시
   void _showLoadingDialog() {
     showDialog(
       context: context,
       barrierDismissible: false,
-      builder: (context) => AlertDialog(
+      builder: (context) => const AlertDialog(
         content: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -144,52 +180,20 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
-  // OpenAI API 실패 시 대체 응답
-  String _generateFallbackResponse(String actionType) {
-    switch (actionType) {
-      case '자랑거리':
-        return '와! 정말 자랑스러운 일이네요! 🎉 더 자세히 얘기해주세요!';
-      case '고민거리':
-        return '고민이 있으시는군요 💭 편하게 말씀해주세요. 제가 들어드릴게요.';
-      case '위로가 필요할 때':
-        return '힘든 시간을 보내고 계시는군요 🫂 괜찮아요, 모든 게 다 지나갈 거예요.';
-      case '시시콜콜':
-        return '안녕하세요! 😄 심심하셨군요! 저도 이야기하고 싶었어요.';
-      case '끝말 잇기':
-        return '끝말잇기 좋아요! 🎮 제가 먼저 시작할게요. "사과"!';
-      case '화가 나요':
-        return '화가 나셨군요 😤 무슨 일이 있으셨나요? 저한테 털어놓으세요.';
-      default:
-        return '안녕하세요! 😊 무엇을 도와드릴까요?';
-    }
+  void _showSnackBar(String message, Color color) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: color,
+      ),
+    );
   }
 
   void _onItemTapped(int index) {
     setState(() {
       _selectedIndex = index;
     });
-  }
-
-  @override
-  void initState() {
-    super.initState();
-    _scrollController.addListener(_onScroll);
-
-    // 초기 그라데이션 상태 설정
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      Future.delayed(Duration(milliseconds: 100), () {
-        if (_scrollController.hasClients && mounted) {
-          _onScroll();
-        }
-      });
-    });
-  }
-
-  @override
-  void dispose() {
-    _textController.dispose();
-    _scrollController.dispose();
-    super.dispose();
   }
 
   void _onScroll() {
@@ -202,7 +206,6 @@ class _HomePageState extends State<HomePage> {
     });
   }
 
-  // 홈 탭
   Widget _buildHomeContent() {
     return Container(
       color: const Color(0xFFF3F5F2),
@@ -232,7 +235,7 @@ class _HomePageState extends State<HomePage> {
                     width: 80,
                     height: 40,
                   ),
-                  const SizedBox(height: 126),
+                  const SizedBox(height: 126), // 원래 높이로 되돌림
                   Container(
                     margin: const EdgeInsets.symmetric(horizontal: 24),
                     padding: const EdgeInsets.all(1.5),
@@ -360,7 +363,7 @@ class _HomePageState extends State<HomePage> {
                       ],
                     ),
                   ),
-                  const SizedBox(height: 126),
+                  const SizedBox(height: 126), // 원래 높이로 되돌림
                   Container(
                     width: double.infinity,
                     height: 56,
@@ -389,10 +392,11 @@ class _HomePageState extends State<HomePage> {
                   ),
                   const SizedBox(height: 14),
 
-                  // 겨울철 식물 관리 팁
+                  // 백엔드 기능 바로가기 섹션 추가
+                  const SizedBox(height: 14),
+
                   Container(
                     width: double.infinity,
-                    // height: 700,
                     padding: const EdgeInsets.symmetric(horizontal: 20),
                     decoration: const BoxDecoration(
                       color: Colors.white,
@@ -410,10 +414,7 @@ class _HomePageState extends State<HomePage> {
                             '겨울철 식물 관리 팁 \u{26C4}',
                             style: AppTypography.s1.withColor(AppColors.grey900),
                           ),
-
                           const SizedBox(height: 16),
-
-                          // Wrap으로 식물 관리 팁 카드들 배치
                           Wrap(
                             spacing: 8,
                             runSpacing: 8,
@@ -436,12 +437,10 @@ class _HomePageState extends State<HomePage> {
                               ),
                             ],
                           ),
-
                         ],
                       ),
                     ),
                   ),
-
                   AspectRatio(
                     aspectRatio: 6.0,
                     child: Image.asset(
@@ -461,7 +460,6 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
-  // 아이콘 + 텍스트가 있는 퀵 액션 버튼 (이전 대화용)
   Widget _buildQuickActionWithIcon(String text, String iconPath) {
     return GestureDetector(
       onTap: () => _handleQuickAction(text),
@@ -491,11 +489,9 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
-  // 2열 그리드용 식물 관리 팁 카드 위젯 (세로형)
   Widget _buildPlantTipCard(String title, String imagePath) {
-    // 화면 너비에 따라 카드 너비 계산 (2열 그리드)
     final screenWidth = MediaQuery.of(context).size.width;
-    final cardWidth = (screenWidth - 48 - 8) / 2; // 패딩 40 + 간격 8을 고려
+    final cardWidth = (screenWidth - 48 - 8) / 2;
 
     return SizedBox(
       width: cardWidth,
@@ -505,7 +501,7 @@ class _HomePageState extends State<HomePage> {
           ClipRRect(
             borderRadius: BorderRadius.circular(8),
             child: AspectRatio(
-              aspectRatio: 1.0, // 정사각형 비율
+              aspectRatio: 1.0,
               child: Image.asset(
                 imagePath,
                 width: double.infinity,
@@ -533,10 +529,6 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
-
-
-
-  // 각 탭 내용 선택
   Widget _buildContent() {
     switch (_selectedIndex) {
       case 0:
@@ -552,7 +544,6 @@ class _HomePageState extends State<HomePage> {
     }
   }
 
-  // 텍스트만 있는 퀵 액션 버튼
   Widget _buildQuickActionText(String text) {
     return GestureDetector(
       onTap: () => _handleQuickAction(text),
@@ -573,6 +564,185 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
+  Widget _buildQuickAccessCard({
+    required String title,
+    required String subtitle,
+    required IconData icon,
+    required Color color,
+    required VoidCallback onTap,
+  }) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: AppColors.grey100, width: 1),
+          boxShadow: [
+            BoxShadow(
+              color: color.withOpacity(0.1),
+              blurRadius: 8,
+              offset: const Offset(0, 2),
+            ),
+          ],
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: color.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Icon(
+                icon,
+                color: color,
+                size: 20,
+              ),
+            ),
+            const SizedBox(height: 12),
+            Text(
+              title,
+              style: AppTypography.b1.withColor(AppColors.grey900),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              subtitle,
+              style: AppTypography.c2.withColor(AppColors.grey600),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildStatusSummaryCard() {
+    return Consumer(
+      builder: (context, ref, child) {
+        final plantCountAsync = ref.watch(plantCountProvider);
+        final favoriteCountAsync = ref.watch(favoriteCountProvider);
+
+        return Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: AppColors.grey100, width: 1),
+            boxShadow: [
+              BoxShadow(
+                color: AppColors.grey300.withOpacity(0.1),
+                blurRadius: 8,
+                offset: const Offset(0, 2),
+              ),
+            ],
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: AppColors.point600.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: const Icon(
+                  Icons.analytics,
+                  color: AppColors.point600,
+                  size: 20,
+                ),
+              ),
+              const SizedBox(height: 12),
+              Text(
+                '나의 현황',
+                style: AppTypography.b1.withColor(AppColors.grey900),
+              ),
+              const SizedBox(height: 8),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    '식물',
+                    style: AppTypography.c2.withColor(AppColors.grey600),
+                  ),
+                  plantCountAsync.when(
+                    data: (count) => Text(
+                      '${count}개',
+                      style: AppTypography.c1.withColor(AppColors.grey900),
+                    ),
+                    loading: () => const SizedBox(
+                      width: 12,
+                      height: 12,
+                      child: CircularProgressIndicator(strokeWidth: 1),
+                    ),
+                    error: (_, __) => Text(
+                      '-',
+                      style: AppTypography.c1.withColor(AppColors.grey900),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 4),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    '즐겨찾기',
+                    style: AppTypography.c2.withColor(AppColors.grey600),
+                  ),
+                  favoriteCountAsync.when(
+                    data: (count) => Text(
+                      '${count}개',
+                      style: AppTypography.c1.withColor(AppColors.grey900),
+                    ),
+                    loading: () => const SizedBox(
+                      width: 12,
+                      height: 12,
+                      child: CircularProgressIndicator(strokeWidth: 1),
+                    ),
+                    error: (_, __) => Text(
+                      '-',
+                      style: AppTypography.c1.withColor(AppColors.grey900),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  // 네비게이션 메서드들
+  void _navigateToPlantManagement() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => const PlantManagementPage(),
+      ),
+    );
+  }
+
+  void _navigateToShopping() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => const ShoppingPage(),
+      ),
+    );
+  }
+
+  void _navigateToFavorites() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => const FavoritesPage(),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -586,7 +756,7 @@ class _HomePageState extends State<HomePage> {
           filter: ImageFilter.blur(sigmaX: 8.0, sigmaY: 8.0),
           child: Container(
             width: 360,
-            height: 70,
+            height: 70, // 두 번째 코드와 동일하게 70으로 변경
             decoration: BoxDecoration(
               color: Colors.white,
               borderRadius: const BorderRadius.only(
@@ -602,7 +772,7 @@ class _HomePageState extends State<HomePage> {
             ),
             child: SafeArea(
               child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8), // 두 번째 코드와 동일하게 변경
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceAround,
                   children: [
@@ -650,11 +820,11 @@ class _HomePageState extends State<HomePage> {
 
     return GestureDetector(
       onTap: () => _onItemTapped(index),
-      child: Container(
+      child: Container( // 두 번째 코드와 동일하게 Container 유지
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Container(
+            Container( // 두 번째 코드와 동일하게 아이콘을 Container로 감쌈
               child: SvgPicture.asset(
                 isSelected ? activeIcon : inactiveIcon,
                 width: 24,
@@ -665,7 +835,7 @@ class _HomePageState extends State<HomePage> {
                 ),
               ),
             ),
-            const SizedBox(height: 2),
+            const SizedBox(height: 2), // 두 번째 코드와 동일하게 2로 변경
             Text(
               label,
               style: AppTypography.c2.withColor(

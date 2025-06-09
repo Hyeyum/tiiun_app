@@ -201,7 +201,6 @@ class _BuddyShopPageState extends State<BuddyShopPage> {
             child: BackdropFilter(
               filter: ImageFilter.blur(sigmaX: 8, sigmaY: 8),
               child: Container(
-                padding: EdgeInsets.all(12),
                 width: 100,
                 height: 100,
                 decoration: BoxDecoration(

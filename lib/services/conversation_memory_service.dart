@@ -1,8 +1,8 @@
 // lib/services/conversation_memory_service.dart
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:langchain/langchain.dart';
-import '../models/conversation_model.dart';
-import '../models/message_model.dart'; // MessageModel import
+import '../models/conversation_model.dart' as app_models;
+import '../models/message_model.dart' as app_message; // Message 모델 import with prefix
 
 // 대화 메모리 서비스 Provider
 final conversationMemoryServiceProvider = Provider<ConversationMemoryService>((ref) {
@@ -46,7 +46,7 @@ class ConversationMemoryService {
   // 메시지 모델을 LangChain 메모리로 변환
   Future<void> loadMessagesIntoMemory(
       String conversationId,
-      List<MessageModel> messages, // MessageModel로 변경
+      List<app_message.Message> messages,
       ) async {
     // 메모리 초기화
     if (_memories.containsKey(conversationId)) {
@@ -55,10 +55,11 @@ class ConversationMemoryService {
 
     final memory = getOrCreateMemoryForConversation(conversationId);
 
+    // messages[i].content는 이미 Message 모델에서 디코딩된 상태
     // 메시지를 순서대로 쌍으로 처리 (사용자 메시지, AI 응답)
     for (int i = 0; i < messages.length - 1; i++) {
-      if (messages[i].sender == 'user' && // String 비교로 변경
-          messages[i + 1].sender == 'ai') { // 'agent' 대신 'ai' 사용
+      if (messages[i].sender == app_message.MessageSender.user &&
+          messages[i + 1].sender == app_message.MessageSender.agent) {
         await memory.saveContext(
           inputValues: {'input': messages[i].content},
           outputValues: {'output': messages[i + 1].content},

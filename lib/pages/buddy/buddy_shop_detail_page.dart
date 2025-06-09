@@ -124,7 +124,7 @@ class _BuddyShopDetailPageState extends State<BuddyShopDetailPage> {
                 ),
               ),
             ),
-            
+
             Container(
               margin: EdgeInsets.symmetric(horizontal: 20),
               child: Column(
@@ -280,8 +280,8 @@ class _BuddyShopDetailPageState extends State<BuddyShopDetailPage> {
                     child: Column(
                       children: [
                         Align(
-                          alignment: Alignment.centerLeft,
-                          child:
+                            alignment: Alignment.centerLeft,
+                            child:
                             Text(
                               '급수 기간',
                               style: AppTypography.b2.withColor(AppColors.grey900),
@@ -289,12 +289,12 @@ class _BuddyShopDetailPageState extends State<BuddyShopDetailPage> {
                         ),
                         SizedBox(height: 8,),
                         Align(
-                          alignment: Alignment.centerLeft,
-                          child:
-                          Text(
-                            '일주일에 한 번',
-                            style: AppTypography.b3.withColor(AppColors.grey700),
-                          )
+                            alignment: Alignment.centerLeft,
+                            child:
+                            Text(
+                              '일주일에 한 번',
+                              style: AppTypography.b3.withColor(AppColors.grey700),
+                            )
                         ),
                       ],
                     ),

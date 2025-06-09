@@ -6,8 +6,8 @@ import 'package:langchain_openai/langchain_openai.dart';
 import 'dart:convert';
 import 'dart:math';
 import 'langchain_service.dart';
-import '../models/conversation_model.dart';
-import '../models/message_model.dart'; // MessageModel import
+import '../models/conversation_model.dart' as app_models;
+import '../models/message_model.dart' as app_message; // Message 모델 import with prefix
 import '../models/sentiment_analysis_result_model.dart'; // SentimentAnalysisResult 모델 추가
 import 'package:tiiun/services/remote_config_service.dart';
 import 'package:tiiun/utils/error_handler.dart'; // Import ErrorHandler
@@ -35,9 +35,9 @@ class SentimentAnalysisService {
     if (_apiKey != null && _apiKey!.isNotEmpty) {
       _chatModel = ChatOpenAI(
         apiKey: _apiKey,
-        model: 'gpt-4.1-2025-04-14',
+        model: 'gpt-4o', // 🚀 UPGRADED: gpt-3.5-turbo -> gpt-4o
         temperature: 0.3,
-        maxTokens: 500,
+        maxTokens: 600, // 🔥 INCREASED: 500 -> 600 for better analysis
       );
       AppLogger.debug('SentimentAnalysisService: ChatOpenAI model initialized.');
     } else {
@@ -152,7 +152,7 @@ class SentimentAnalysisService {
   }
 
   // 대화 전체 감정 분석 및 요약
-  Future<Map<String, dynamic>> analyzeConversation(List<MessageModel> messages) async { // MessageModel로 변경
+  Future<Map<String, dynamic>> analyzeConversation(List<app_message.Message> messages) async {
     return ErrorHandler.safeFuture(() async { // Use safeFuture
       if (messages.isEmpty) {
         return {
@@ -174,9 +174,9 @@ class SentimentAnalysisService {
         };
       }
 
-      // 사용자 메시지만 필터링 (String 비교로 변경)
+      // 사용자 메시지만 필터링
       final userMessages = messages
-          .where((msg) => msg.sender == 'user') // String 비교
+          .where((msg) => msg.sender == app_message.MessageSender.user)
           .toList();
 
       if (userMessages.isEmpty) {
@@ -191,14 +191,22 @@ class SentimentAnalysisService {
       // 각 메시지의 감정 분석
       List<double> sentimentScores = [];
       List<String> emotionTypes = [];
-      String currentUserId = messages.first.conversationId; // conversationId를 userId 대신 사용 (MessageModel에 userId 필드가 없음)
+      String? currentUserId = messages.first.userId; // 메시지에서 userId 가져오기
 
       for (final message in userMessages) {
-        // MessageModel에는 sentiment 필드가 없으므로 직접 분석
-        final sentiment = await analyzeSentiment(message.content, message.conversationId, currentUserId);
+        SentimentAnalysisResult sentiment; // MessageSentiment 대신 SentimentAnalysisResult 사용
+
+        if (message.sentiment != null) {
+          // Message 내부의 sentiment 필드 (SentimentAnalysisResult 타입)를 그대로 사용
+          sentiment = message.sentiment!;
+        } else {
+          sentiment = await analyzeSentiment(message.content, message.conversationId, currentUserId ?? '');
+        }
 
         sentimentScores.add(double.parse(sentiment.confidence)); // 문자열을 double로 변환
-        emotionTypes.add(sentiment.emotionType);
+        if (sentiment.emotionType != null) {
+          emotionTypes.add(sentiment.emotionType);
+        }
       }
 
       final averageMoodScore = sentimentScores.isNotEmpty
@@ -244,14 +252,14 @@ class SentimentAnalysisService {
   }
 
   // 대화 요약
-  Future<String> _summarizeConversation(List<MessageModel> messages) async { // MessageModel로 변경
+  Future<String> _summarizeConversation(List<app_message.Message> messages) async {
     return ErrorHandler.safeFuture(() async { // Use safeFuture
       if (_chatModel == null || messages.isEmpty) {
         return '대화 요약을 생성할 수 없습니다.';
       }
 
       final chatMessages = messages.map((msg) {
-        final role = msg.sender == 'user' ? '사용자' : '상담사'; // String 비교
+        final role = msg.sender == app_message.MessageSender.user ? '사용자' : '상담사';
         return '$role: ${msg.content}';
       }).join('\n\n');
 
@@ -279,8 +287,8 @@ $chatMessages
 
   // 사용자 감정 추적 및 분석
   Future<List<Map<String, dynamic>>> trackEmotionTrends(
-      List<MessageModel> messages, // MessageModel로 변경
-          {int windowSize = 3}
+      List<app_message.Message> messages,
+      {int windowSize = 3}
       ) async {
     return ErrorHandler.safeFuture(() async { // Use safeFuture
       if (messages.isEmpty) {
@@ -292,7 +300,7 @@ $chatMessages
       }
 
       final userMessages = messages
-          .where((msg) => msg.sender == 'user') // String 비교
+          .where((msg) => msg.sender == app_message.MessageSender.user)
           .toList()
         ..sort((a, b) => a.createdAt.compareTo(b.createdAt));
 
@@ -301,11 +309,25 @@ $chatMessages
       }
 
       List<Map<String, dynamic>> emotionData = [];
-      String currentUserId = messages.first.conversationId; // conversationId를 userId 대신 사용
+      String? currentUserId = messages.first.userId; // 메시지에서 userId 가져오기
 
       for (final message in userMessages) {
-        // MessageModel에는 sentiment 필드가 없으므로 직접 분석
-        final sentiment = await analyzeSentiment(message.content, message.conversationId, currentUserId);
+        SentimentAnalysisResult sentiment; // MessageSentiment 대신 SentimentAnalysisResult 사용
+
+        if (message.sentiment != null) {
+          // Message 내부의 sentiment 필드 (SentimentAnalysisResult 타입)를 SentimentAnalysisResult로 변환
+          sentiment = SentimentAnalysisResult(
+            id: message.sentiment!.id, // id 추가
+            userId: currentUserId ?? '',
+            conversationId: message.conversationId,
+            analyzedAt: message.createdAt,
+            confidence: message.sentiment!.confidence, // confidence 사용
+            emotionType: message.sentiment!.emotionType,
+            sentimentalLabel: message.sentiment!.sentimentalLabel, // sentimentalLabel 사용
+          );
+        } else {
+          sentiment = await analyzeSentiment(message.content, message.conversationId, currentUserId ?? '');
+        }
 
         emotionData.add({
           'timestamp': message.createdAt,
@@ -356,7 +378,7 @@ $chatMessages
   }
 
   // 사용자 감정 변화 감지 및 개선 제안
-  Future<Map<String, dynamic>> generateEmotionalInsights(List<MessageModel> messages) async { // MessageModel로 변경
+  Future<Map<String, dynamic>> generateEmotionalInsights(List<app_message.Message> messages) async {
     return ErrorHandler.safeFuture(() async { // Use safeFuture
       if (_chatModel == null || messages.isEmpty) {
         return {

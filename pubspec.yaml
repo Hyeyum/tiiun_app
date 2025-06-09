@@ -1,30 +1,40 @@
 name: tiiun
 description: "A new Flutter project."
 publish_to: 'none' # Remove this line if you wish to publish to pub.dev
-
 version: 1.0.0+1
 
 environment:
-  sdk: ^3.7.0-209.1.beta
+  sdk: '>=3.0.0 <4.0.0'
 
 dependencies:
-  firebase_core: ^3.6.0
-  cloud_firestore: ^5.6.8
-  firebase_auth: ^5.3.1
+  flutter:
+    sdk: flutter
+  flutter_localizations:
+    sdk: flutter
+  speech_to_text: ^7.0.0-beta.2 #
+  connectivity_plus: ^6.1.4
+
+  # Firebase packages
+  firebase_core: ^3.13.0
+  firebase_auth: ^5.0.0
+  cloud_firestore: ^5.0.0
   firebase_storage: ^12.4.5
   firebase_analytics: ^11.0.0
   firebase_messaging: ^15.2.5
   firebase_remote_config: ^5.4.3
   firebase_app_check: ^0.3.0+2
 
-  flutter:
-    sdk: flutter
-  speech_to_text: ^7.0.0-beta.2
-  connectivity_plus: ^6.1.4
-
   # State management
   provider: ^6.1.1
   flutter_riverpod: ^2.4.10
+
+  # UI packages
+  flutter_svg: ^2.0.10
+  google_fonts: ^6.1.0
+  flutter_markdown: ^0.6.18
+  intl: ^0.20.2
+  cached_network_image: ^3.3.1
+  shimmer: ^3.0.0
 
   # Voice and audio
   just_audio: ^0.9.36
@@ -33,14 +43,6 @@ dependencies:
 
   # Speech recognition and synthesis
   flutter_tts: ^3.8.5
-
-  # UI packages
-  cupertino_icons: ^1.0.8
-  flutter_svg: ^2.0.7
-  flutter_markdown: ^0.6.18
-  intl: ^0.19.0
-  cached_network_image: ^3.3.1
-  shimmer: ^3.0.0
 
   # API communication
   http: ^1.2.0
@@ -72,36 +74,31 @@ dependencies:
 dev_dependencies:
   flutter_test:
     sdk: flutter
-
-  flutter_lints: ^6.0.0
+  flutter_lints: ^3.0.1
+  build_runner: ^2.4.8
+  json_serializable: ^6.7.1
   flutter_launcher_icons: ^0.13.1
-
-flutter_icons:
-  android: true
-  image_path: "assets/images/logos/tiiun_app_icon.png"
-  web:
-    generate: true
-    image_path: "assets/images/logos/tiiun_app_icon.png"
+  flutter_native_splash: ^2.3.9
 
 
 flutter:
   uses-material-design: true
   assets:
+    - assets/images/
     - assets/images/contents/
-    - assets/images/logos/
-    - assets/images/mypage/
+    - assets/images/dialog/
     - assets/images/diary/
     - assets/images/display/
     - assets/images/history/
+    - assets/images/logos/
+    - assets/images/mypage/
     - assets/images/shop/
-    - assets/images/dialog/
-
-
+    - assets/icons/
+    - assets/icons/buddy/
+    - assets/icons/community/
     - assets/icons/functions/
     - assets/icons/navbar/
     - assets/icons/sentiment/
-    - assets/icons/buddy/
-    - assets/icons/community/
   fonts:
     - family: Pretendard
       fonts:

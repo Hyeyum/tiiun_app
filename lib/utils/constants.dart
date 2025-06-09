@@ -1,7 +1,11 @@
+import 'dart:io';
+
+import 'package:flutter/foundation.dart';
+
 /// 앱 전체에서 사용할 상수 정의
 class AppConstants {
   // 앱 정보
-  static const String appName = "마음챙김 대화";
+  static const String appName = "tiiun";
   static const String appVersion = "1.0.0";
   static const String appBuildNumber = "1";
 
@@ -206,11 +210,44 @@ class StorageKeys {
 
 /// API 관련 상수 정의
 class ApiConstants {
-  // API 엔드포인트
+  // Backend API 엔드포인트 (Spring Boot 서버)
+  static const String backendBaseUrl = 'http://192.168.0.96:1234/api';
+
+  // 플랫폼별 동적 base URL 추가
+  static String get dynamicBackendBaseUrl {
+    // 먼저 foundation import 확인
+    if (kIsWeb) {
+      return 'http://localhost:1234/api';
+    } else {
+      try {
+        if (Platform.isAndroid) {
+          return 'http://10.0.2.2:1234/api';
+        } else if (Platform.isIOS) {
+          return 'http://localhost:1234/api';
+        } else {
+          return 'http://localhost:1234/api';
+        }
+      } catch (e) {
+        // Platform 클래스 사용 불가능한 경우 기본값 반환
+        return 'http://localhost:1234/api';
+      }
+    }
+  }
+
+  // Legacy API 엔드포인트 (기존 마음챙김 대화 API)
   static const String baseUrl = 'https://mindfultalks-api.example.com/api/v1';
   static const String aiServiceUrl = 'https://mindfultalks-ai.example.com/api/v1';
 
-  // API 경로
+  // Backend API 경로 (Spring Boot)
+  static const String backendUsersPath = '/users';
+  static const String backendPlantsPath = '/plants';
+  static const String backendGrowthRecordsPath = '/growth-records';
+  static const String backendShoppingItemsPath = '/shopping-items';
+  static const String backendFavoritesPath = '/favorites';
+  static const String backendTiiunModelsPath = '/tiiun-models';
+  static const String backendAuthPath = '/users/auth';
+
+  // Legacy API 경로
   static const String authPath = '/auth';
   static const String usersPath = '/users';
   static const String conversationsPath = '/conversations';

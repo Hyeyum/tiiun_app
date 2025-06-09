@@ -1,25 +1,30 @@
-// conversation_list_page.dart
+// 디자인 수정됨
 import 'package:flutter/material.dart';
-import 'package:tiiun/services/firebase_service.dart';
-import 'package:tiiun/models/conversation_model.dart';
-import 'package:tiiun/models/message_model.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart'; // Import Riverpod
+import 'package:tiiun/services/conversation_service.dart';
+import 'package:tiiun/models/conversation_model.dart'; // Ensure correct Conversation and Message models
 import 'package:tiiun/design_system/colors.dart';
 import 'package:tiiun/design_system/typography.dart';
 import 'package:tiiun/pages/home_chatting/chatting_page.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import 'package:tiiun/utils/error_handler.dart'; // Import ErrorHandler
+import 'package:tiiun/utils/date_formatter.dart'; // Import DateFormatter
 
-class ConversationListPage extends StatefulWidget {
+class ConversationListPage extends ConsumerStatefulWidget { // Changed to ConsumerStatefulWidget
   const ConversationListPage({super.key});
 
   @override
-  State<ConversationListPage> createState() => _ConversationListPageState();
+  ConsumerState<ConversationListPage> createState() => _ConversationListPageState(); // Changed to ConsumerState
 }
 
-class _ConversationListPageState extends State<ConversationListPage> {
-  final FirebaseService _firebaseService = FirebaseService();
+class _ConversationListPageState extends ConsumerState<ConversationListPage> {
+  // No need for direct instantiation of FirebaseService here, use ref.read
 
   @override
   Widget build(BuildContext context) {
+    // Watch the userConversationsProvider to get real-time updates
+    final conversationsAsyncValue = ref.watch(userConversationsProvider);
+
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
@@ -40,42 +45,8 @@ class _ConversationListPageState extends State<ConversationListPage> {
         ),
         centerTitle: true,
       ),
-      body: StreamBuilder<List<ConversationModel>>(
-        stream: _firebaseService.getConversations(),
-        builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(child: CircularProgressIndicator());
-          }
-
-          if (snapshot.hasError) {
-            return Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Text(
-                    '오류가 발생했습니다',
-                    style: AppTypography.b2.withColor(AppColors.grey600),
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    '${snapshot.error}',
-                    style: AppTypography.c2.withColor(AppColors.grey400),
-                    textAlign: TextAlign.center,
-                  ),
-                  const SizedBox(height: 16),
-                  ElevatedButton(
-                    onPressed: () {
-                      setState(() {}); // 새로고침
-                    },
-                    child: Text('다시 시도'),
-                  ),
-                ],
-              ),
-            );
-          }
-
-          final conversations = snapshot.data ?? [];
-
+      body: conversationsAsyncValue.when(
+        data: (conversations) {
           if (conversations.isEmpty) {
             return Center(
               child: Column(
@@ -114,18 +85,46 @@ class _ConversationListPageState extends State<ConversationListPage> {
             },
           );
         },
+        loading: () => const Center(child: CircularProgressIndicator()),
+        error: (error, stack) {
+          final appError = ErrorHandler.handleException(error, stack);
+          return Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Text(
+                  '오류가 발생했습니다', // 두 번째 코드와 동일한 간단한 텍스트
+                  style: AppTypography.b2.withColor(AppColors.grey600),
+                ),
+                const SizedBox(height: 8), // 두 번째 코드와 동일한 간격
+                Text(
+                  '${appError.message}', // 두 번째 코드와 동일하게 에러 메시지 형태 변경
+                  style: AppTypography.c2.withColor(AppColors.grey400),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 16),
+                ElevatedButton(
+                  onPressed: () {
+                    ref.invalidate(userConversationsProvider); // Invalidate the provider to retry
+                  },
+                  child: Text('다시 시도'),
+                ),
+              ],
+            ),
+          );
+        },
       ),
     );
   }
 
-  Widget _buildConversationItem(ConversationModel conversation) {
+  Widget _buildConversationItem(Conversation conversation) {
     return GestureDetector(
       onTap: () {
         Navigator.push(
           context,
           MaterialPageRoute(
             builder: (context) => ChatScreen(
-              conversationId: conversation.conversationId!,
+              conversationId: conversation.id,
             ),
           ),
         );
@@ -159,7 +158,7 @@ class _ConversationListPageState extends State<ConversationListPage> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // 대화 제목 (없으면 기본 제목)
+                  // 대화 제목 (두 번째 코드와 동일한 방식으로 생성)
                   Text(
                     _getConversationTitle(conversation),
                     style: AppTypography.b2.withColor(AppColors.grey900),
@@ -167,13 +166,13 @@ class _ConversationListPageState extends State<ConversationListPage> {
                     overflow: TextOverflow.ellipsis,
                   ),
                   const SizedBox(height: 4),
-                  // 마지막 메시지 가져오기
+                  // 마지막 메시지 가져오기 (두 번째 코드와 동일한 방식)
                   _buildLastMessage(conversation),
                 ],
               ),
             ),
             Text(
-              conversation.formattedTime,
+              _getFormattedTime(conversation), // 두 번째 코드와 동일한 방식으로 시간 포맷
               style: AppTypography.c2.withColor(AppColors.grey400),
             ),
           ],
@@ -182,11 +181,11 @@ class _ConversationListPageState extends State<ConversationListPage> {
     );
   }
 
-  // 대화 제목 생성
-  String _getConversationTitle(ConversationModel conversation) {
+  // 대화 제목 생성 (두 번째 코드와 동일한 방식)
+  String _getConversationTitle(Conversation conversation) {
     // 기본 제목이 있으면 사용, 없으면 시간 기반 제목
-    if (conversation.conversationId != null) {
-      final date = conversation.createdAt;
+    if (conversation.id.isNotEmpty) {
+      final date = conversation.createdAt ?? DateTime.now();
       final month = date.month;
       final day = date.day;
       final hour = date.hour;
@@ -196,41 +195,51 @@ class _ConversationListPageState extends State<ConversationListPage> {
     return '틔운이와의 대화';
   }
 
-  // 마지막 메시지 표시 위젯
-  Widget _buildLastMessage(ConversationModel conversation) {
-    if (conversation.lastMessageId == null) {
+// 마지막 메시지 표시 위젯 (기존 방식 유지)
+  Widget _buildLastMessage(Conversation conversation) {
+    if (conversation.lastMessage.isNotEmpty) {
       return Text(
-        '새로운 대화',
+        conversation.lastMessage,
         style: AppTypography.b4.withColor(AppColors.grey600),
+        maxLines: 2,
+        overflow: TextOverflow.ellipsis,
       );
     }
 
-    // 마지막 메시지 내용 가져오기
-    return FutureBuilder<MessageModel?>(
-      future: _firebaseService.getMessage(conversation.lastMessageId!),
-      builder: (context, snapshot) {
-        if (snapshot.connectionState == ConnectionState.waiting) {
-          return Text(
-            '로딩 중...',
-            style: AppTypography.b4.withColor(AppColors.grey400),
-          );
-        }
-
-        final message = snapshot.data;
-        if (message == null) {
-          return Text(
-            '메시지를 불러올 수 없습니다',
-            style: AppTypography.b4.withColor(AppColors.grey400),
-          );
-        }
-
-        return Text(
-          message.content,
-          style: AppTypography.b4.withColor(AppColors.grey600),
-          maxLines: 2,
-          overflow: TextOverflow.ellipsis,
-        );
-      },
+    return Text(
+      '새로운 대화',
+      style: AppTypography.b4.withColor(AppColors.grey600),
     );
+  }
+
+  // 시간 포맷 (두 번째 코드와 동일한 방식)
+  String _getFormattedTime(Conversation conversation) {
+    final date = conversation.lastMessageAt ?? conversation.createdAt ?? DateTime.now();
+    final now = DateTime.now();
+    final difference = now.difference(date);
+
+    if (difference.inMinutes < 1) {
+      return '방금 전';
+    } else if (difference.inHours < 1) {
+      return '${difference.inMinutes}분 전';
+    } else if (difference.inDays < 1) {
+      return '${difference.inHours}시간 전';
+    } else if (difference.inDays < 7) {
+      return '${difference.inDays}일 전';
+    } else {
+      return '${date.month}/${date.day}';
+    }
+  }
+
+  // ✅ 스낵바 메서드 추가
+  void _showSnackBar(String message) {
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(message),
+          backgroundColor: AppColors.point900,
+        ),
+      );
+    }
   }
 }

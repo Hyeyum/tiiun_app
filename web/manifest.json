@@ -1,6 +1,6 @@
 {
-    "name": "myapp",
-    "short_name": "myapp",
+    "name": "Tiiun Buddy",
+    "short_name": "Tiiun Buddy",
     "start_url": ".",
     "display": "standalone",
     "background_color": "#0175C2",

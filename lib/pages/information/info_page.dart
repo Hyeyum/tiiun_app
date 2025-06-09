@@ -746,16 +746,16 @@ class _InfoPageState extends State<InfoPage> {
             child: Row(
               children: [
                 GestureDetector(
-                  onTap: () {
-                    setState(() {
-                      _showCommunityAll = false;
-                    });
-                  },
-                  child: SvgPicture.asset(
-                    'assets/icons/functions/back.svg',
-                    width: 24,
-                    height: 24,
-                  )
+                    onTap: () {
+                      setState(() {
+                        _showCommunityAll = false;
+                      });
+                    },
+                    child: SvgPicture.asset(
+                      'assets/icons/functions/back.svg',
+                      width: 24,
+                      height: 24,
+                    )
                 ),
                 Expanded(
                   child: Center(
@@ -936,21 +936,21 @@ class _InfoPageState extends State<InfoPage> {
               child: InkWell(
                   borderRadius: BorderRadius.circular(60),
                   onTap: () {
-                  // 글쓰기 페이지로 이동
-                  _navigateToWritePage();
-                },
-                child: Center(
-                  child: SizedBox(
-                    width: 24,
-                    height: 24,
-                    child: SvgPicture.asset(
-                      'assets/icons/community/Edit_Pencil_02.svg',
-                      width: 16,
-                      height: 16,
-                      fit: BoxFit.contain,
+                    // 글쓰기 페이지로 이동
+                    _navigateToWritePage();
+                  },
+                  child: Center(
+                    child: SizedBox(
+                      width: 24,
+                      height: 24,
+                      child: SvgPicture.asset(
+                        'assets/icons/community/Edit_Pencil_02.svg',
+                        width: 16,
+                        height: 16,
+                        fit: BoxFit.contain,
+                      ),
                     ),
-                  ),
-                )
+                  )
               ),
             ),
           ),

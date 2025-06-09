@@ -1,26 +1,29 @@
+// 새 폴더/lib/pages/onboarding/lgsignin_page.dart
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:tiiun/design_system/colors.dart';
 import 'package:tiiun/design_system/typography.dart';
 import 'package:flutter_svg/flutter_svg.dart';
-import 'package:tiiun/services/firebase_service.dart'; // 추가
+import 'package:tiiun/services/firebase_service.dart';
+import 'package:tiiun/utils/logger.dart';
 
-class LGSigninPage extends StatefulWidget {
+import '../../services/ai_service.dart'; // AppLogger 임포트
+
+class LGSigninPage extends ConsumerStatefulWidget {
   const LGSigninPage({super.key});
 
   @override
-  State<LGSigninPage> createState() => _LGSigninPageState();
+  ConsumerState<LGSigninPage> createState() => _LGSigninPageState();
 }
 
-class _LGSigninPageState extends State<LGSigninPage> {
+class _LGSigninPageState extends ConsumerState<LGSigninPage> {
   final _formKey = GlobalKey<FormState>();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
-  final _firebaseService = FirebaseService(); // FirebaseService 인스턴스 추가
   bool _isLoading = false;
   bool _obscurePassword = true;
 
-  // 유효성 검사 상태 추가
   bool _isEmailValid = false;
   bool _isPasswordValid = false;
   String? _emailError;
@@ -29,7 +32,6 @@ class _LGSigninPageState extends State<LGSigninPage> {
   @override
   void initState() {
     super.initState();
-    // 텍스트 변경 감지
     _emailController.addListener(_validateForm);
     _passwordController.addListener(_validateForm);
   }
@@ -41,10 +43,8 @@ class _LGSigninPageState extends State<LGSigninPage> {
     super.dispose();
   }
 
-  // 실시간 폼 유효성 검사
   void _validateForm() {
     setState(() {
-      // 이메일 검사
       String email = _emailController.text.trim();
       if (email.isEmpty) {
         _isEmailValid = false;
@@ -57,7 +57,6 @@ class _LGSigninPageState extends State<LGSigninPage> {
         _emailError = null;
       }
 
-      // 비밀번호 검사
       String password = _passwordController.text;
       if (password.isEmpty) {
         _isPasswordValid = false;
@@ -75,10 +74,8 @@ class _LGSigninPageState extends State<LGSigninPage> {
     });
   }
 
-  // 로그인 버튼 활성화 여부
   bool get _isFormValid => _isEmailValid && _isPasswordValid;
 
-  // Firebase 로그인 처리 - 수정된 부분
   Future<void> _handleSignIn() async {
     if (!_isFormValid) return;
 
@@ -87,14 +84,14 @@ class _LGSigninPageState extends State<LGSigninPage> {
     });
 
     try {
-      // FirebaseService를 사용한 로그인
-      final userModel = await _firebaseService.signIn(
+      final firebaseService = ref.read(firebaseServiceProvider);
+
+      final userModel = await firebaseService.signIn(
         email: _emailController.text.trim(),
         password: _passwordController.text,
       );
 
       if (userModel != null) {
-        // 로그인 성공 - 홈 화면으로 이동
         if (mounted) {
           Navigator.pushNamedAndRemoveUntil(
             context,
@@ -103,7 +100,6 @@ class _LGSigninPageState extends State<LGSigninPage> {
           );
         }
       } else {
-        // 로그인 실패
         if (mounted) {
           _showErrorSnackBar('로그인에 실패했습니다. 이메일과 비밀번호를 확인해주세요.');
         }
@@ -165,23 +161,19 @@ class _LGSigninPageState extends State<LGSigninPage> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // 상단 헤더 (고정)
                 _buildHeader(),
 
-                // 입력 필드들 (자동 확장)
                 Expanded(
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      // ID 라벨
                       Text(
                         'ID',
                         style: AppTypography.b2.withColor(AppColors.grey800,),
                       ),
                       const SizedBox(height: 4),
 
-                      // 이메일 입력 필드
                       _buildTextFormField(
                         controller: _emailController,
                         hintText: '이메일 입력',
@@ -190,7 +182,6 @@ class _LGSigninPageState extends State<LGSigninPage> {
                         isValid: _isEmailValid,
                       ),
 
-                      // 이메일 에러 메시지
                       if (_emailError != null) ...[
                         const SizedBox(height: 4),
                         Text(
@@ -201,17 +192,14 @@ class _LGSigninPageState extends State<LGSigninPage> {
 
                       const SizedBox(height: 29.5),
 
-                      // PASSWORD 라벨
                       Text(
                         'PASSWORD',
                         style: AppTypography.b2.withColor(AppColors.grey900,),
                       ),
                       const SizedBox(height: 16),
 
-                      // 비밀번호 입력 필드
                       _buildPasswordField(),
 
-                      // 비밀번호 에러 메시지
                       if (_passwordError != null) ...[
                         const SizedBox(height: 4),
                         Text(
@@ -223,7 +211,6 @@ class _LGSigninPageState extends State<LGSigninPage> {
                   ),
                 ),
 
-                // 로그인 버튼 (하단 고정)
                 _buildSignInButton(),
               ],
             ),
@@ -238,7 +225,6 @@ class _LGSigninPageState extends State<LGSigninPage> {
       height: 56,
       child: Stack(
         children: [
-          // 뒤로가기 버튼 (왼쪽)
           Positioned(
             left: 0,
             top: 0,
@@ -255,7 +241,6 @@ class _LGSigninPageState extends State<LGSigninPage> {
               ),
             ),
           ),
-          // 제목 (가운데)
           Center(
             child: Text(
               'LG 계정 로그인',
@@ -285,7 +270,7 @@ class _LGSigninPageState extends State<LGSigninPage> {
       child: TextFormField(
         controller: controller,
         keyboardType: keyboardType,
-        style: AppTypography.b1.withColor(AppColors.grey900),
+        style: AppTypography.b1.withColor(AppColors.grey900), // 변경된 부분
         decoration: InputDecoration(
           hintText: hintText,
           hintStyle: AppTypography.b1.withColor(AppColors.grey400,),
@@ -303,7 +288,7 @@ class _LGSigninPageState extends State<LGSigninPage> {
           ),
           focusedBorder: UnderlineInputBorder(
             borderSide: BorderSide(
-              color: getBorderColor(), // 동적으로 색상 결정
+              color: getBorderColor(),
               width: 1.5,
             ),
           ),
@@ -327,7 +312,7 @@ class _LGSigninPageState extends State<LGSigninPage> {
           TextFormField(
             controller: _passwordController,
             obscureText: _obscurePassword,
-            style: AppTypography.b1.withColor(AppColors.grey900),
+            style: AppTypography.b1.withColor(AppColors.grey900), // 변경된 부분: b2 → b1 + 색상 추가
             decoration: InputDecoration(
               hintText: '패스워드 입력',
               hintStyle: AppTypography.b1.withColor(AppColors.grey400,),
@@ -345,7 +330,7 @@ class _LGSigninPageState extends State<LGSigninPage> {
               ),
               focusedBorder: UnderlineInputBorder(
                 borderSide: BorderSide(
-                  color: getBorderColor(), // 동적으로 색상 결정
+                  color: getBorderColor(),
                   width: 1.5,
                 ),
               ),
@@ -353,10 +338,9 @@ class _LGSigninPageState extends State<LGSigninPage> {
             ),
           ),
 
-          // 아이콘 대신 이미지 사용
           Positioned(
             right: 0,
-            top: 12, // 이미지를 텍스트와 같은 높이로 조정
+            top: 12,
             child: GestureDetector(
               onTap: () {
                 setState(() {

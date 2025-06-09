@@ -111,13 +111,13 @@ class _BuddyDecoPageState extends State<BuddyDecoPage> {
                         ? Container(
                       decoration: BoxDecoration(
                         gradient: LinearGradient(
-                          begin: Alignment.centerLeft,
-                          end: Alignment.centerRight,
-                          colors: [
-                            Color(0xFF72ED98),
-                            Color(0xFF10BEBE),
-                          ],
-                          stops: [0.4, 1.0]
+                            begin: Alignment.centerLeft,
+                            end: Alignment.centerRight,
+                            colors: [
+                              Color(0xFF72ED98),
+                              Color(0xFF10BEBE),
+                            ],
+                            stops: [0.4, 1.0]
                         ),
                         borderRadius: BorderRadius.circular(20),
                       ),
@@ -149,21 +149,21 @@ class _BuddyDecoPageState extends State<BuddyDecoPage> {
                       ),
                     )
                         : ClipRRect(
-                          borderRadius: BorderRadius.circular(16),
-                          child: Image.asset(
-                            width: 112,
-                            height: 124,
-                            previewImages[index],
-                            fit: BoxFit.cover,
-                            filterQuality: FilterQuality.high,
-                            errorBuilder: (context, error, stackTrace) {
-                              return Container(
-                                color: AppColors.grey300,
-                                child: Icon(Icons.image, color: AppColors.grey500),
-                              );
-                            },
-                          ),
-                        ),
+                      borderRadius: BorderRadius.circular(16),
+                      child: Image.asset(
+                        width: 112,
+                        height: 124,
+                        previewImages[index],
+                        fit: BoxFit.cover,
+                        filterQuality: FilterQuality.high,
+                        errorBuilder: (context, error, stackTrace) {
+                          return Container(
+                            color: AppColors.grey300,
+                            child: Icon(Icons.image, color: AppColors.grey500),
+                          );
+                        },
+                      ),
+                    ),
                   ),
                 );
               },

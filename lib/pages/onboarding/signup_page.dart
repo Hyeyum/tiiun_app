@@ -1,33 +1,35 @@
+// 새 폴더/lib/pages/onboarding/signup_page.dart
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:tiiun/design_system/colors.dart';
 import 'package:tiiun/design_system/typography.dart';
 import 'package:flutter_svg/flutter_svg.dart';
-import 'package:tiiun/services/firebase_service.dart'; // 추가
+import 'package:tiiun/services/firebase_service.dart';
+import 'package:tiiun/utils/logger.dart';
 
-class SignupPage extends StatefulWidget {
+import '../../services/ai_service.dart'; // AppLogger 임포트
+
+class SignupPage extends ConsumerStatefulWidget {
   const SignupPage({super.key});
 
   @override
-  State<SignupPage> createState() => _SignupPageState();
+  ConsumerState<SignupPage> createState() => _SignupPageState();
 }
 
-class _SignupPageState extends State<SignupPage> {
-  int _currentStep = 1; // 1: 정보입력, 2: 완료
+class _SignupPageState extends ConsumerState<SignupPage> {
+  int _currentStep = 1;
 
-  // 컨트롤러들
   final _formKey = GlobalKey<FormState>();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   final _passwordConfirmController = TextEditingController();
   final _nicknameController = TextEditingController();
-  final _firebaseService = FirebaseService(); // FirebaseService 인스턴스 추가
 
   bool _isLoading = false;
   bool _obscurePassword = true;
   bool _obscurePasswordConfirm = true;
 
-  // 유효성 검사 상태 추가
   bool _isEmailValid = false;
   bool _isPasswordValid = false;
   bool _isPasswordConfirmValid = false;
@@ -40,7 +42,6 @@ class _SignupPageState extends State<SignupPage> {
   @override
   void initState() {
     super.initState();
-    // 텍스트 변경 감지
     _emailController.addListener(_validateForm);
     _passwordController.addListener(_validateForm);
     _passwordConfirmController.addListener(_validateForm);
@@ -56,10 +57,8 @@ class _SignupPageState extends State<SignupPage> {
     super.dispose();
   }
 
-  // 실시간 폼 유효성 검사
   void _validateForm() {
     setState(() {
-      // 이메일 검사
       String email = _emailController.text.trim();
       if (email.isEmpty) {
         _isEmailValid = false;
@@ -72,7 +71,6 @@ class _SignupPageState extends State<SignupPage> {
         _emailError = null;
       }
 
-      // 비밀번호 검사
       String password = _passwordController.text;
       if (password.isEmpty) {
         _isPasswordValid = false;
@@ -88,7 +86,6 @@ class _SignupPageState extends State<SignupPage> {
         _passwordError = null;
       }
 
-      // 비밀번호 확인 검사
       String passwordConfirm = _passwordConfirmController.text;
       if (passwordConfirm.isEmpty) {
         _isPasswordConfirmValid = false;
@@ -101,7 +98,6 @@ class _SignupPageState extends State<SignupPage> {
         _passwordConfirmError = null;
       }
 
-      // 닉네임 검사
       String nickname = _nicknameController.text.trim();
       if (nickname.isEmpty) {
         _isNicknameValid = false;
@@ -116,28 +112,24 @@ class _SignupPageState extends State<SignupPage> {
     });
   }
 
-  // 가입하기 버튼 활성화 여부
   bool get _isFormValid => _isEmailValid && _isPasswordValid && _isPasswordConfirmValid && _isNicknameValid;
 
-  // 다음 단계로 이동
   void _nextStep() {
     setState(() {
       _currentStep++;
     });
   }
 
-  // 이전 단계로 이동
   void _previousStep() {
     if (_currentStep > 1) {
       setState(() {
         _currentStep--;
       });
     } else {
-      Navigator.pop(context); // 로그인 페이지로 돌아가기
+      Navigator.pop(context);
     }
   }
 
-  // Firebase 회원가입 처리 - 수정된 부분
   Future<void> _handleSignUp() async {
     if (!_isFormValid) return;
 
@@ -146,20 +138,19 @@ class _SignupPageState extends State<SignupPage> {
     });
 
     try {
-      // FirebaseService를 사용한 회원가입
-      final userModel = await _firebaseService.signUp(
+      final firebaseService = ref.read(firebaseServiceProvider);
+
+      final userModel = await firebaseService.signUp(
         email: _emailController.text.trim(),
         password: _passwordController.text,
-        userName: _nicknameController.text.trim(), // nickname → userName
+        userName: _nicknameController.text.trim(),
       );
 
       if (userModel != null) {
-        // 회원가입 성공 - Step 2로 이동
         if (mounted) {
           _nextStep();
         }
       } else {
-        // 회원가입 실패
         if (mounted) {
           _showErrorSnackBar('회원가입에 실패했습니다. 다시 시도해주세요.');
         }
@@ -182,7 +173,6 @@ class _SignupPageState extends State<SignupPage> {
     }
   }
 
-  // 에러 메시지 변환
   String _getErrorMessage(String code) {
     switch (code) {
       case 'email-already-in-use':
@@ -198,7 +188,6 @@ class _SignupPageState extends State<SignupPage> {
     }
   }
 
-  // 에러 스낵바 표시
   void _showErrorSnackBar(String message) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
@@ -208,7 +197,6 @@ class _SignupPageState extends State<SignupPage> {
     );
   }
 
-  // HomePage로 이동
   void _navigateToHome() {
     Navigator.pushNamedAndRemoveUntil(
       context,
@@ -228,7 +216,6 @@ class _SignupPageState extends State<SignupPage> {
     );
   }
 
-  // 현재 단계에 맞는 위젯 반환
   Widget _buildCurrentStep() {
     switch (_currentStep) {
       case 1:
@@ -240,7 +227,6 @@ class _SignupPageState extends State<SignupPage> {
     }
   }
 
-  // Step 1: 정보 입력 화면
   Widget _buildStep1() {
     return Padding(
       padding: const EdgeInsets.all(24.0),
@@ -249,27 +235,22 @@ class _SignupPageState extends State<SignupPage> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // 상단 헤더 (고정)
             _buildHeaderWithTitle(),
 
-            // 입력 필드들 (자동 확장)
             Expanded(
               child: SingleChildScrollView(
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // 중앙 정렬을 위한 여백
                     SizedBox(height: MediaQuery.of(context).size.height * 0.1),
 
-                    // 이메일 라벨
                     Text(
                       '이메일',
                       style: AppTypography.b2.withColor(AppColors.grey800,),
                     ),
                     const SizedBox(height: 4),
 
-                    // 이메일 입력 필드
                     _buildTextFormField(
                       controller: _emailController,
                       hintText: '이메일 입력',
@@ -278,7 +259,6 @@ class _SignupPageState extends State<SignupPage> {
                       isValid: _isEmailValid,
                     ),
 
-                    // 이메일 에러 메시지
                     if (_emailError != null) ...[
                       const SizedBox(height: 4),
                       Text(
@@ -289,17 +269,14 @@ class _SignupPageState extends State<SignupPage> {
 
                     const SizedBox(height: 28),
 
-                    // 비밀번호 라벨
                     Text(
                       '비밀번호',
                       style: AppTypography.b2.withColor(AppColors.grey900,),
                     ),
                     const SizedBox(height: 4),
 
-                    // 비밀번호 입력 필드
                     _buildPasswordField(),
 
-                    // 비밀번호 에러 메시지
                     if (_passwordError != null) ...[
                       const SizedBox(height: 4),
                       Text(
@@ -310,17 +287,14 @@ class _SignupPageState extends State<SignupPage> {
 
                     const SizedBox(height: 24),
 
-                    // 비밀번호 확인 라벨
                     Text(
                       '비밀번호 확인',
                       style: AppTypography.b2.withColor(AppColors.grey900,),
                     ),
                     const SizedBox(height: 4),
 
-                    // 비밀번호 확인 입력 필드
                     _buildPasswordConfirmField(),
 
-                    // 비밀번호 확인 에러 메시지
                     if (_passwordConfirmError != null) ...[
                       const SizedBox(height: 4),
                       Text(
@@ -331,14 +305,12 @@ class _SignupPageState extends State<SignupPage> {
 
                     const SizedBox(height: 24),
 
-                    // 닉네임 라벨
                     Text(
                       '닉네임',
                       style: AppTypography.b2.withColor(AppColors.grey900,),
                     ),
                     const SizedBox(height: 4),
 
-                    // 닉네임 입력 필드
                     _buildTextFormField(
                       controller: _nicknameController,
                       hintText: '닉네임 입력 (한글, 영문, 숫자)',
@@ -346,7 +318,6 @@ class _SignupPageState extends State<SignupPage> {
                       isValid: _isNicknameValid,
                     ),
 
-                    // 닉네임 에러 메시지
                     if (_nicknameError != null) ...[
                       const SizedBox(height: 4),
                       Text(
@@ -355,14 +326,12 @@ class _SignupPageState extends State<SignupPage> {
                       ),
                     ],
 
-                    // 하단 여백
                     SizedBox(height: MediaQuery.of(context).size.height * 0.1),
                   ],
                 ),
               ),
             ),
 
-            // 하단 가입하기 버튼 (고정)
             _buildSignUpButton(),
           ],
         ),
@@ -370,11 +339,9 @@ class _SignupPageState extends State<SignupPage> {
     );
   }
 
-  // Step 2: 완료 화면
   Widget _buildStep2() {
     return Stack(
       children: [
-        // 환영 문구 (절대 위치로 고정)
         Positioned(
           top: 80,
           left: 20,
@@ -388,15 +355,12 @@ class _SignupPageState extends State<SignupPage> {
           ),
         ),
 
-        // 나머지 콘텐츠 (중앙 이미지와 하단 버튼)
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 20),
           child: Column(
             children: [
-              // 상단 여백 (자동 조절)
               Expanded(flex: 1, child: SizedBox()),
 
-              // 환영 이미지 (고정)
               Center(
                 child: Image.asset(
                   'assets/images/logos/illust_welcome.png',
@@ -405,10 +369,8 @@ class _SignupPageState extends State<SignupPage> {
                 ),
               ),
 
-              // 이미지와 버튼 사이 여백 (자동 조절)
               Expanded(flex: 1, child: SizedBox()),
 
-              // 시작하기 버튼 (고정)
               _buildStartButton(),
 
               const SizedBox(height: 36),
@@ -419,13 +381,11 @@ class _SignupPageState extends State<SignupPage> {
     );
   }
 
-  // 헤더 + 타이틀
   Widget _buildHeaderWithTitle() {
     return Container(
       height: 56,
       child: Stack(
         children: [
-          // 뒤로가기 버튼 (왼쪽)
           Positioned(
             left: 0,
             top: 0,
@@ -440,7 +400,6 @@ class _SignupPageState extends State<SignupPage> {
               ),
             ),
           ),
-          // 제목 (가운데)
           Center(
             child: Text(
               '회원가입',
@@ -452,7 +411,6 @@ class _SignupPageState extends State<SignupPage> {
     );
   }
 
-  // 일반 텍스트 필드
   Widget _buildTextFormField({
     required TextEditingController controller,
     required String hintText,
@@ -470,7 +428,7 @@ class _SignupPageState extends State<SignupPage> {
       child: TextFormField(
         controller: controller,
         keyboardType: keyboardType,
-        style: AppTypography.b1.withColor(AppColors.grey900),
+        style: AppTypography.b1.withColor(AppColors.grey900), // 변경된 부분
         decoration: InputDecoration(
           hintText: hintText,
           hintStyle: AppTypography.b1.withColor(AppColors.grey400,),
@@ -488,7 +446,7 @@ class _SignupPageState extends State<SignupPage> {
           ),
           focusedBorder: UnderlineInputBorder(
             borderSide: BorderSide(
-              color: getBorderColor(), // 동적으로 색상 결정
+              color: getBorderColor(),
               width: 1.5,
             ),
           ),
@@ -498,7 +456,6 @@ class _SignupPageState extends State<SignupPage> {
     );
   }
 
-  // 비밀번호 필드
   Widget _buildPasswordField() {
     Color getBorderColor() {
       if (_passwordError != null) return AppColors.point800;
@@ -513,7 +470,7 @@ class _SignupPageState extends State<SignupPage> {
           TextFormField(
             controller: _passwordController,
             obscureText: _obscurePassword,
-            style: AppTypography.b1.withColor(AppColors.grey900),
+            style: AppTypography.b1.withColor(AppColors.grey900), // 변경된 부분: b2 → b1 + 색상 추가
             decoration: InputDecoration(
               hintText: '비밀번호 입력 (숫자, 영문 포함 8자 이상)',
               hintStyle: AppTypography.b1.withColor(AppColors.grey400,),
@@ -531,7 +488,7 @@ class _SignupPageState extends State<SignupPage> {
               ),
               focusedBorder: UnderlineInputBorder(
                 borderSide: BorderSide(
-                  color: getBorderColor(), // 동적으로 색상 결정
+                  color: getBorderColor(),
                   width: 1.5,
                 ),
               ),
@@ -539,7 +496,6 @@ class _SignupPageState extends State<SignupPage> {
             ),
           ),
 
-          // 비밀번호 표시/숨김 아이콘
           Positioned(
             right: 0,
             top: 12,
@@ -564,7 +520,6 @@ class _SignupPageState extends State<SignupPage> {
     );
   }
 
-  // 비밀번호 확인 필드
   Widget _buildPasswordConfirmField() {
     Color getBorderColor() {
       if (_passwordConfirmError != null) return AppColors.point800;
@@ -579,7 +534,7 @@ class _SignupPageState extends State<SignupPage> {
           TextFormField(
             controller: _passwordConfirmController,
             obscureText: _obscurePasswordConfirm,
-            style: AppTypography.b1.withColor(AppColors.grey900),
+            style: AppTypography.b1.withColor(AppColors.grey900), // 변경된 부분: b2 → b1 + 색상 추가
             decoration: InputDecoration(
               hintText: '동일한 비밀번호 입력',
               hintStyle: AppTypography.b1.withColor(AppColors.grey400,),
@@ -597,7 +552,7 @@ class _SignupPageState extends State<SignupPage> {
               ),
               focusedBorder: UnderlineInputBorder(
                 borderSide: BorderSide(
-                  color: getBorderColor(), // 동적으로 색상 결정
+                  color: getBorderColor(),
                   width: 1.5,
                 ),
               ),
@@ -605,7 +560,6 @@ class _SignupPageState extends State<SignupPage> {
             ),
           ),
 
-          // 비밀번호 표시/숨김 아이콘
           Positioned(
             right: 0,
             top: 12,
@@ -630,7 +584,6 @@ class _SignupPageState extends State<SignupPage> {
     );
   }
 
-  // 가입하기 버튼
   Widget _buildSignUpButton() {
     return SizedBox(
       width: double.infinity,
@@ -658,7 +611,6 @@ class _SignupPageState extends State<SignupPage> {
     );
   }
 
-  // 시작하기 버튼
   Widget _buildStartButton() {
     return SizedBox(
       width: double.infinity,

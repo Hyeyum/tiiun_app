@@ -4,28 +4,27 @@ import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:path/path.dart' as path;
 import 'package:uuid/uuid.dart';
-import 'firebase_service.dart'; // FirebaseService로 변경
+import 'auth_service.dart';
 import 'package:firebase_auth/firebase_auth.dart'; // Explicitly import firebase_auth
 import 'package:cloud_firestore/cloud_firestore.dart'; // Explicitly import cloud_firestore
-import '../models/user_model.dart'; // UserModel import 추가
 
 // Provider for the profile service
 final profileServiceProvider = Provider<ProfileService>((ref) {
-  final firebaseService = FirebaseService(); // FirebaseService 직접 생성
-  return ProfileService(firebaseService);
+  final authService = ref.watch(authServiceProvider);
+  return ProfileService(authService);
 });
 
 class ProfileService {
   final FirebaseStorage _storage = FirebaseStorage.instance;
-  final FirebaseService _firebaseService; // FirebaseService로 변경
+  final AuthService _authService;
   final Uuid _uuid = const Uuid();
   final FirebaseFirestore _firestore = FirebaseFirestore.instance; // Add Firestore instance
 
-  ProfileService(this._firebaseService); // FirebaseService로 변경
+  ProfileService(this._authService);
 
   // 프로필 이미지 업로드
   Future<String> uploadProfileImage(File imageFile) async {
-    final userId = _firebaseService.currentUserId; // FirebaseService 메서드 사용
+    final userId = _authService.getCurrentUserId();
     if (userId == null) {
       throw Exception('사용자 로그인이 필요합니다');
     }
@@ -57,7 +56,7 @@ class ProfileService {
   // 비밀번호 변경
   Future<void> changePassword(String currentPassword, String newPassword) async {
     try {
-      final user = _firebaseService.currentUser; // FirebaseService 프로퍼티 사용
+      final user = _authService.getCurrentUser();
       if (user == null) {
         throw Exception('사용자 로그인이 필요합니다');
       }
@@ -66,34 +65,51 @@ class ProfileService {
         throw Exception('이메일 정보가 없습니다');
       }
 
-      // 현재 비밀번호로 재인증
-      final credential = EmailAuthProvider.credential(
-        email: user.email!,
-        password: currentPassword,
+      // 현재 비밀번호로 로그인 시도하여 확인
+      await _authService.loginWithEmailAndPassword(
+        user.email!,
+        currentPassword,
       );
-      await user.reauthenticateWithCredential(credential);
 
       // 새 비밀번호로 업데이트
       await user.updatePassword(newPassword);
     } catch (e) {
-      if (e is FirebaseAuthException) {
-        switch (e.code) {
-          case 'wrong-password':
-            throw Exception('현재 비밀번호가 올바르지 않습니다');
-          case 'weak-password':
-            throw Exception('새 비밀번호가 너무 약합니다');
-          default:
-            throw Exception('비밀번호 변경 중 오류가 발생했습니다: ${e.message}');
-        }
+      if (e.toString().contains('wrong-password')) {
+        throw Exception('현재 비밀번호가 올바르지 않습니다');
       } else {
-        throw Exception('비밀번호 변경 중 오류가 발생했습니다: $e');
+        rethrow; // Rethrow other exceptions from AuthService.loginWithEmailAndPassword
       }
+    }
+  }
+
+  // 알림 설정 업데이트
+  Future<void> updateNotificationSettings({
+    required bool emailNotifications,
+    required bool dailyCheckInReminder,
+    required bool weeklySummaryEnabled,
+  }) async {
+    final userId = _authService.getCurrentUserId();
+    if (userId == null) {
+      throw Exception('사용자 로그인이 필요합니다');
+    }
+
+    try {
+      final user = await _authService.getUserModel(userId);
+      final updatedUser = user.copyWith(
+        emailNotifications: emailNotifications,
+        dailyCheckInReminder: dailyCheckInReminder,
+        weeklySummaryEnabled: weeklySummaryEnabled,
+      );
+
+      await _authService.updateUserModel(updatedUser);
+    } catch (e) {
+      throw Exception('알림 설정 업데이트 중 오류가 발생했습니다: $e');
     }
   }
 
   // 사용자 이름 업데이트
   Future<void> updateUsername(String username) async {
-    final userId = _firebaseService.currentUserId; // FirebaseService 메서드 사용
+    final userId = _authService.getCurrentUserId();
     if (userId == null) {
       throw Exception('사용자 로그인이 필요합니다');
     }
@@ -104,191 +120,22 @@ class ProfileService {
 
     try {
       // Firebase Auth 표시 이름 업데이트
-      final user = _firebaseService.currentUser;
-      if (user != null) {
-        await user.updateDisplayName(username);
-      }
+      await _authService.updateProfile(displayName: username);
 
-      // Firestore 사용자 문서 업데이트 (UserModel의 실제 필드명 사용)
-      await _firestore.collection('users').doc(userId).update({
-        'user_name': username, // UserModel의 실제 필드명 사용
-      });
+      // Firestore 사용자 문서 업데이트 (AuthService will handle encoding)
+      final user = await _authService.getUserModel(userId);
+      final updatedUser = user.copyWith(userName: username);
+
+      await _authService.updateUserModel(updatedUser);
     } catch (e) {
       throw Exception('사용자 이름 업데이트 중 오류가 발생했습니다: $e');
-    }
-  }
-
-  // 프로필 이미지 URL 업데이트
-  Future<void> updateProfileImageUrl(String imageUrl) async {
-    final userId = _firebaseService.currentUserId;
-    if (userId == null) {
-      throw Exception('사용자 로그인이 필요합니다');
-    }
-
-    try {
-      // Firebase Auth 프로필 사진 업데이트
-      final user = _firebaseService.currentUser;
-      if (user != null) {
-        await user.updatePhotoURL(imageUrl);
-      }
-
-      // Firestore 사용자 문서 업데이트 (UserModel의 실제 필드명 사용)
-      await _firestore.collection('users').doc(userId).update({
-        'profile_image_url': imageUrl, // UserModel의 실제 필드명 사용
-      });
-    } catch (e) {
-      throw Exception('프로필 이미지 업데이트 중 오류가 발생했습니다: $e');
-    }
-  }
-
-  // 알림 설정 업데이트
-  Future<void> updateNotificationSettings(bool notificationYn) async {
-    final userId = _firebaseService.currentUserId;
-    if (userId == null) {
-      throw Exception('사용자 로그인이 필요합니다');
-    }
-
-    try {
-      await _firestore.collection('users').doc(userId).update({
-        'notification_yn': notificationYn,
-      });
-    } catch (e) {
-      throw Exception('알림 설정 업데이트 중 오류가 발생했습니다: $e');
-    }
-  }
-
-  // 테마 모드 업데이트
-  Future<void> updateThemeMode(String themeMode) async {
-    final userId = _firebaseService.currentUserId;
-    if (userId == null) {
-      throw Exception('사용자 로그인이 필요합니다');
-    }
-
-    try {
-      await _firestore.collection('users').doc(userId).update({
-        'theme_mode': themeMode,
-      });
-    } catch (e) {
-      throw Exception('테마 설정 업데이트 중 오류가 발생했습니다: $e');
-    }
-  }
-
-  // 선호 음성 업데이트
-  Future<void> updatePreferredVoice(String preferredVoice) async {
-    final userId = _firebaseService.currentUserId;
-    if (userId == null) {
-      throw Exception('사용자 로그인이 필요합니다');
-    }
-
-    try {
-      await _firestore.collection('users').doc(userId).update({
-        'preferred_voice': preferredVoice,
-      });
-    } catch (e) {
-      throw Exception('선호 음성 업데이트 중 오류가 발생했습니다: $e');
-    }
-  }
-
-  // 언어 설정 업데이트
-  Future<void> updateLanguage(String language) async {
-    final userId = _firebaseService.currentUserId;
-    if (userId == null) {
-      throw Exception('사용자 로그인이 필요합니다');
-    }
-
-    try {
-      await _firestore.collection('users').doc(userId).update({
-        'language': language,
-      });
-    } catch (e) {
-      throw Exception('언어 설정 업데이트 중 오류가 발생했습니다: $e');
-    }
-  }
-
-  // 성별 업데이트
-  Future<void> updateGender(String? gender) async {
-    final userId = _firebaseService.currentUserId;
-    if (userId == null) {
-      throw Exception('사용자 로그인이 필요합니다');
-    }
-
-    try {
-      await _firestore.collection('users').doc(userId).update({
-        'gender': gender,
-      });
-    } catch (e) {
-      throw Exception('성별 설정 업데이트 중 오류가 발생했습니다: $e');
-    }
-  }
-
-  // 연령대 업데이트
-  Future<void> updateAgeGroup(String? ageGroup) async {
-    final userId = _firebaseService.currentUserId;
-    if (userId == null) {
-      throw Exception('사용자 로그인이 필요합니다');
-    }
-
-    try {
-      await _firestore.collection('users').doc(userId).update({
-        'age_group': ageGroup,
-      });
-    } catch (e) {
-      throw Exception('연령대 설정 업데이트 중 오류가 발생했습니다: $e');
-    }
-  }
-
-  // 선호 활동 업데이트
-  Future<void> updatePreferredActivities(List<String> preferredActivities) async {
-    final userId = _firebaseService.currentUserId;
-    if (userId == null) {
-      throw Exception('사용자 로그인이 필요합니다');
-    }
-
-    try {
-      await _firestore.collection('users').doc(userId).update({
-        'preferred_activities': preferredActivities,
-      });
-    } catch (e) {
-      throw Exception('선호 활동 업데이트 중 오류가 발생했습니다: $e');
-    }
-  }
-
-  // Whisper API 사용 설정 업데이트
-  Future<void> updateWhisperApiUsage(bool useWhisperApiYn) async {
-    final userId = _firebaseService.currentUserId;
-    if (userId == null) {
-      throw Exception('사용자 로그인이 필요합니다');
-    }
-
-    try {
-      await _firestore.collection('users').doc(userId).update({
-        'use_whisper_api_yn': useWhisperApiYn,
-      });
-    } catch (e) {
-      throw Exception('Whisper API 설정 업데이트 중 오류가 발생했습니다: $e');
-    }
-  }
-
-  // 자동 대화 저장 설정 업데이트
-  Future<void> updateAutoSaveConversations(bool autoSaveConversationsYn) async {
-    final userId = _firebaseService.currentUserId;
-    if (userId == null) {
-      throw Exception('사용자 로그인이 필요합니다');
-    }
-
-    try {
-      await _firestore.collection('users').doc(userId).update({
-        'auto_save_conversations_yn': autoSaveConversationsYn,
-      });
-    } catch (e) {
-      throw Exception('자동 저장 설정 업데이트 중 오류가 발생했습니다: $e');
     }
   }
 
   // 이메일 변경 (이메일 인증 필요)
   Future<void> updateEmail(String newEmail, String password) async {
     try {
-      final user = _firebaseService.currentUser; // FirebaseService 프로퍼티 사용
+      final user = _authService.getCurrentUser();
       if (user == null) {
         throw Exception('사용자 로그인이 필요합니다');
       }
@@ -297,35 +144,31 @@ class ProfileService {
         throw Exception('이메일 정보가 없습니다');
       }
 
-      // 현재 비밀번호로 재인증
-      final credential = EmailAuthProvider.credential(
-        email: user.email!,
-        password: password,
+      // 현재 비밀번호로 로그인 시도하여 확인
+      await _authService.loginWithEmailAndPassword(
+        user.email!,
+        password,
       );
-      await user.reauthenticateWithCredential(credential);
 
       // 이메일 업데이트
       await user.updateEmail(newEmail);
 
-      // Firestore 사용자 문서는 직접 업데이트
-      // UserModel에서 email 필드는 생성자에서만 설정되므로 직접 업데이트
-      // 실제로는 Firebase Auth의 email이 primary이므로 Firestore 업데이트는 선택사항
+      // Firestore 사용자 문서 업데이트
+      final userModel = await _authService.getUserModel(user.uid);
+      final updatedUser = userModel.copyWith(email: newEmail);
+
+      await _authService.updateUserModel(updatedUser);
     } catch (e) {
-      if (e is FirebaseAuthException) {
-        switch (e.code) {
-          case 'email-already-in-use':
-            throw Exception('이미 사용 중인 이메일입니다');
-          case 'wrong-password':
-            throw Exception('비밀번호가 올바르지 않습니다');
-          case 'invalid-email':
-            throw Exception('유효하지 않은 이메일 형식입니다');
-          case 'requires-recent-login':
-            throw Exception('보안을 위해 재로그인이 필요합니다');
-          default:
-            throw Exception('이메일 변경 중 오류가 발생했습니다: ${e.message}');
-        }
+      if (e.toString().contains('email-already-in-use')) {
+        throw Exception('이미 사용 중인 이메일입니다');
+      } else if (e.toString().contains('wrong-password')) {
+        throw Exception('비밀번호가 올바르지 않습니다');
+      } else if (e.toString().contains('invalid-email')) {
+        throw Exception('유효하지 않은 이메일 형식입니다');
+      } else if (e.toString().contains('requires-recent-login')) {
+        throw Exception('보안을 위해 재로그인이 필요합니다');
       } else {
-        throw Exception('이메일 변경 중 오류가 발생했습니다: $e');
+        rethrow; // Rethrow other exceptions
       }
     }
   }
@@ -333,13 +176,14 @@ class ProfileService {
   // 계정 삭제
   Future<void> deleteAccount(String password) async {
     try {
-      final userId = _firebaseService.currentUserId; // FirebaseService 메서드 사용
+      final userId = _authService.getCurrentUserId();
       if (userId == null) {
         throw Exception('사용자 로그인이 필요합니다');
       }
 
       // For security, Firebase requires re-authentication for sensitive operations like account deletion.
-      final currentUser = _firebaseService.currentUser; // FirebaseService 프로퍼티 사용
+      // Firebase provides a method to reauthenticate a user.
+      final currentUser = _authService.getCurrentUser();
       if (currentUser == null) {
         throw Exception('사용자 로그인이 필요합니다.');
       }
@@ -361,6 +205,7 @@ class ProfileService {
       await currentUser.delete();
       // Additional cleanup for conversations, mood records etc. would be ideal
       // to do via Cloud Functions or in dedicated service calls here.
+      // Example: _ref.read(conversationServiceProvider).deleteAllConversations(); // if dependencies allow
 
     } catch (e) {
       if (e is FirebaseAuthException) {
@@ -378,13 +223,5 @@ class ProfileService {
         throw Exception('계정 삭제 중 오류가 발생했습니다: $e');
       }
     }
-  }
-
-  // 사용자 데이터 가져오기 (편의 메서드)
-  Future<UserModel?> getCurrentUserData() async {
-    final userId = _firebaseService.currentUserId;
-    if (userId == null) return null;
-
-    return await _firebaseService.getUserData(userId);
   }
 }

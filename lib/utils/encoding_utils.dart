@@ -1,313 +1,341 @@
-// 개선된 인코딩 유틸리티 클래스 (Base64 인코딩 사용)
-import 'dart:convert'; // utf8, base64, latin1 등을 사용하기 위한 import
-import 'package:flutter/material.dart';
+// lib/utils/encoding_utils.dart - 최적화 버전
+import 'dart:convert';
+import 'dart:typed_data';
+import 'package:flutter/foundation.dart';
 
-// 디버깅 로그 활성화 (개발 중에만 사용)
-const bool _enableDebugLog = true;
-
+/// 인코딩 유틸리티 클래스 - Base64 의존성 제거 및 성능 최적화
 class EncodingUtils {
-  // 텍스트를 Base64로 인코딩
-  static String encodeToBase64(String text) {
+  // ✅ Base64 패턴 캐시 (성능 최적화)
+  static final RegExp _base64Pattern = RegExp(r'^[A-Za-z0-9+/]*={0,2}$');
+
+  // ✅ 이미 체크한 문자열 캐시 (중복 체크 방지)
+  static final Map<String, bool> _base64CheckCache = <String, bool>{};
+  static const int _maxCacheSize = 1000; // 캐시 크기 제한
+
+  /// ✅ Base64 인코딩 (호환성을 위해 유지하지만 사용 권장하지 않음)
+  @Deprecated('Use direct UTF-8 storage instead')
+  static String encodeToBase64(String input) {
+    if (input.isEmpty) return '';
+
     try {
-      if (text.isEmpty) return text;  // 빈 문자열은 인코딩하지 않음
-
-      // 이미 Base64로 인코딩되어 있는지 확인
-      if (isBase64Encoded(text)) {
-        if (_enableDebugLog) {
-          debugPrint('이미 Base64로 인코딩되어 있음: $text');
-        }
-        return text;  // 이미 인코딩된 경우 그대로 반환
-      }
-
-      // UTF-8로 변환 후 Base64 인코딩
-      final bytes = utf8.encode(text);
-      final base64Str = base64.encode(bytes);
-
-      if (_enableDebugLog) {
-        debugPrint('Base64 인코딩: $text → $base64Str');
-      }
-
-      return base64Str;
+      final bytes = utf8.encode(input);
+      return base64Encode(bytes);
     } catch (e) {
-      debugPrint('Base64 인코딩 오류: $e');
-      return text;  // 오류 시 원본 반환
+      debugPrint('Base64 인코딩 실패: $e');
+      return input; // 실패 시 원본 반환
     }
   }
 
-  // Base64에서 텍스트로 디코딩 (개선된 버전)
-  static String decodeFromBase64(String base64Str) {
+  /// ✅ Base64 디코딩 (기존 데이터 호환성을 위해 유지)
+  static String decodeFromBase64(String encoded) {
+    if (encoded.isEmpty) return '';
+
     try {
-      if (base64Str.isEmpty) return base64Str;  // 빈 문자열은 디코딩하지 않음
+      final bytes = base64Decode(encoded);
+      return utf8.decode(bytes);
+    } catch (e) {
+      debugPrint('Base64 디코딩 실패: $e');
+      return encoded; // 실패 시 원본 반환
+    }
+  }
 
-      // Base64 여부 확인
-      if (!isBase64Encoded(base64Str)) {
-        if (_enableDebugLog) {
-          debugPrint('Base64 형식이 아님: $base64Str');
-        }
+  /// ✅ 최적화된 Base64 체크 (캐싱 적용)
+  static bool isBase64Encoded(String input) {
+    if (input.isEmpty) return false;
 
-        // Base64가 아니지만 깨진 텍스트인 경우 복구 시도
-        if (isCorruptedText(base64Str)) {
-          return fixCorruptedText(base64Str);
-        }
+    // 캐시에서 확인
+    if (_base64CheckCache.containsKey(input)) {
+      return _base64CheckCache[input]!;
+    }
 
-        return base64Str;  // Base64가 아니면 원본 반환
+    // 캐시 크기 관리
+    if (_base64CheckCache.length >= _maxCacheSize) {
+      _base64CheckCache.clear();
+    }
+
+    bool result = _checkBase64Format(input);
+    _base64CheckCache[input] = result;
+
+    return result;
+  }
+
+  /// ✅ 실제 Base64 형식 체크 로직
+  static bool _checkBase64Format(String input) {
+    // 길이 체크 (Base64는 4의 배수)
+    if (input.length % 4 != 0) return false;
+
+    // 패턴 체크
+    if (!_base64Pattern.hasMatch(input)) return false;
+
+    // 실제 디코딩 시도 (가장 확실한 방법)
+    try {
+      base64Decode(input);
+      return true;
+    } catch (e) {
+      return false;
+    }
+  }
+
+  /// ✅ 손상된 텍스트 체크 (성능 최적화)
+  static bool isCorruptedText(String input) {
+    if (input.isEmpty) return false;
+
+    // 일반적인 손상 패턴들 체크
+    const corruptedPatterns = [
+      '�', // 유니코드 대체 문자
+      '\uFFFD', // 대체 문자
+      'Ã', // UTF-8 인코딩 문제
+      '½', // 인코딩 문제
+    ];
+
+    for (final pattern in corruptedPatterns) {
+      if (input.contains(pattern)) return true;
+    }
+
+    // 비정상적인 제어 문자 체크
+    final runes = input.runes;
+    int controlCharCount = 0;
+    for (final rune in runes) {
+      if (rune < 32 && rune != 9 && rune != 10 && rune != 13) {
+        controlCharCount++;
+        if (controlCharCount > 2) return true; // 제어 문자가 너무 많으면 손상된 것으로 판단
       }
+    }
 
+    return false;
+  }
+
+  /// ✅ 모든 복구 방법 시도 (기존 Base64 데이터 마이그레이션용)
+  static String tryAllFixMethods(String input) {
+    if (input.isEmpty) return input;
+
+    // 1. 이미 정상적인 텍스트인 경우
+    if (!isBase64Encoded(input) && !isCorruptedText(input)) {
+      return input;
+    }
+
+    // 2. Base64 디코딩 시도
+    if (isBase64Encoded(input)) {
       try {
-        // 기본 Base64 디코딩 시도
-        final bytes = base64.decode(base64Str);
-        final text = utf8.decode(bytes, allowMalformed: true);
-
-        if (_enableDebugLog) {
-          debugPrint('Base64 디코딩 성공: $base64Str → $text');
-        }
-
-        return text;
-      } catch (e) {
-        debugPrint('UTF-8 디코딩 실패, 다른 방식 시도: $e');
-
-        // UTF-8 디코딩 실패 시 다른 방법 시도
-        final bytes = base64.decode(base64Str);
-
-        try {
-          // Latin1으로 디코딩 후 UTF-8로 변환 시도
-          final latinText = latin1.decode(bytes);
-          final utf8Bytes = latin1.encode(latinText);
-          return utf8.decode(utf8Bytes, allowMalformed: true);
-        } catch (e2) {
-          debugPrint('Latin1 변환 실패: $e2');
-
-          // 수동 복구 시도
-          final rawText = String.fromCharCodes(bytes);
-          return fixCorruptedText(rawText);
-        }
-      }
-    } catch (e) {
-      debugPrint('Base64 디코딩 오류: $e');
-      return base64Str;  // 오류 시 원본 반환
-    }
-  }
-
-  // 텍스트가 Base64 인코딩되었는지 확인 (개선된 버전)
-  static bool isBase64Encoded(String text) {
-    try {
-      if (text.isEmpty) return false;  // 빈 문자열은 Base64가 아님
-
-      // 길이 확인: Base64 인코딩된 문자열의 길이는 항상 4의 배수
-      if (text.length % 4 != 0) return false;
-
-      // 패딩 검사
-      if (text.endsWith('=')) {
-        if (text.endsWith('==') && text.length < 4) return false;
-        if (!text.endsWith('==') && text.endsWith('=') && text.length < 4) return false;
-      }
-
-      // 유효한 Base64 문자인지 확인
-      final base64Regex = RegExp(r'^[A-Za-z0-9+/=]+$');
-      if (!base64Regex.hasMatch(text)) return false;
-
-      // 추가 검증: 실제로 디코딩 시도
-      try {
-        base64.decode(text);
-        return true;  // 디코딩 성공
-      } catch (_) {
-        return false;  // 디코딩 실패 = Base64가 아님
-      }
-    } catch (e) {
-      debugPrint('Base64 확인 오류: $e');
-      return false;  // 오류 발생 = Base64가 아니라고 가정
-    }
-  }
-
-  // 자동 감지 및 디코딩 (개선 버전)
-  static String autoDecodeIfNeeded(String text) {
-    try {
-      // 텍스트가 비어 있으면 그대로 반환
-      if (text.isEmpty) return text;
-
-      // Base64 인코딩 여부 확인
-      if (isBase64Encoded(text)) {
-        // Base64 디코딩 시도
-        try {
-          return decodeFromBase64(text);
-        } catch (e) {
-          debugPrint('자동 디코딩 오류: $e');
-          return text;  // 디코딩 오류 시 원본 반환
-        }
-      }
-
-      // Base64가 아니지만 깨진 텍스트인 경우 복구 시도
-      if (isCorruptedText(text)) {
-        return fixCorruptedText(text);
-      }
-
-      // Base64가 아니면 원본 텍스트 반환
-      return text;
-    } catch (e) {
-      debugPrint('자동 디코딩 처리 오류: $e');
-      return text;  // 오류 시 원본 반환
-    }
-  }
-
-  // 깨진 텍스트인지 확인
-  static bool isCorruptedText(String text) {
-    // 일반적인 한글 깨짐 패턴 확인
-    return text.contains('Ã') ||
-        text.contains('Â') ||
-        text.contains('ì') ||
-        text.contains('ë') ||
-        text.contains('í') ||
-        text.contains('â') ||
-        text.contains('¬') ||
-        text.contains('ã') ||
-        text.contains('Ã¬') ||
-        text.contains('Ã«') ||
-        text.contains('Ã­') ||
-        text.contains('Ã¢');
-  }
-
-  // 깨진 텍스트 복구
-  static String fixCorruptedText(String text) {
-    try {
-      if (_enableDebugLog) {
-        debugPrint('깨진 텍스트 복구 시도: $text');
-      }
-
-      // 방법 1: latin1로 인코딩 후 UTF-8로 디코딩
-      try {
-        final bytes = latin1.encode(text);
-        final fixed = utf8.decode(bytes, allowMalformed: true);
-
-        if (_enableDebugLog) {
-          debugPrint('Latin1 → UTF-8 변환 결과: $fixed');
-        }
-
-        // 변환 결과가 유의미하면 반환
-        if (fixed != text && !fixed.contains('�')) {
-          return fixed;
+        final decoded = decodeFromBase64(input);
+        if (!isCorruptedText(decoded)) {
+          return decoded;
         }
       } catch (e) {
-        debugPrint('Latin1 → UTF-8 변환 실패: $e');
+        debugPrint('Base64 디코딩 실패: $e');
       }
-
-      // 방법 2: 일반적인 한글 깨짐 패턴 변환
-      String result = text;
-      final Map<String, String> replacements = {
-        'Ã¬': '이', 'Ã«': '느', 'Ã­': '인', 'Ã¢': '아',
-        'Â': '', 'Ã': '', '¬': '', 'ì': '이', 'ë': '느',
-        'í': '인', 'â': '아', 'ã': '오',
-        'Ã¬â': '이', 'Ã«â': '느', 'Ã­â': '인', 'Ã¢â': '아',
-        // 추가 패턴...
-      };
-
-      replacements.forEach((key, value) {
-        result = result.replaceAll(key, value);
-      });
-
-      if (_enableDebugLog) {
-        debugPrint('패턴 치환 결과: $result');
-      }
-
-      return result;
-    } catch (e) {
-      debugPrint('텍스트 복구 실패: $e');
-      return text;  // 오류 시 원본 반환
     }
+
+    // 3. 다양한 인코딩 복구 시도
+    final fixedText = _tryMultipleEncodingFixes(input);
+    if (fixedText != input && !isCorruptedText(fixedText)) {
+      return fixedText;
+    }
+
+    // 4. 모든 방법 실패 시 원본 반환
+    return input;
   }
 
-  // UTF-8 인코딩 확인 (기존 호환성 유지)
-  static String ensureUtf8(String text) {
+  /// ✅ 다중 인코딩 복구 시도
+  static String _tryMultipleEncodingFixes(String input) {
+    final fixMethods = [
+      _fixDoubleUtf8Encoding,
+      _fixLatin1ToUtf8,
+      _fixWindowsEncoding,
+      _removeControlCharacters,
+    ];
+
+    for (final method in fixMethods) {
+      try {
+        final result = method(input);
+        if (result != input && !isCorruptedText(result)) {
+          return result;
+        }
+      } catch (e) {
+        debugPrint('인코딩 복구 실패: $e');
+        continue;
+      }
+    }
+
+    return input;
+  }
+
+  /// ✅ 이중 UTF-8 인코딩 복구
+  static String _fixDoubleUtf8Encoding(String input) {
     try {
-      // 텍스트가 비어 있으면 그대로 반환
-      if (text.isEmpty) return text;
-
-      // Base64 디코딩이 필요한 경우 자동으로 처리
-      if (isBase64Encoded(text)) {
-        return decodeFromBase64(text);
-      }
-
-      // 깨진 텍스트인 경우 복구 시도
-      if (isCorruptedText(text)) {
-        return fixCorruptedText(text);
-      }
-
-      // UTF-8 정상 확인 (원본에 UTF-8 인코딩/디코딩을 적용하여 검증)
-      final encoded = utf8.encode(text);
-      final decoded = utf8.decode(encoded, allowMalformed: true);
-
-      return decoded;
+      // UTF-8 → Latin-1 → UTF-8 변환으로 이중 인코딩 복구
+      final latin1Bytes = latin1.encode(input);
+      return utf8.decode(latin1Bytes);
     } catch (e) {
-      debugPrint('UTF-8 검증 오류: $e');
-      return text; // 오류 시 원본 반환
+      return input;
     }
   }
 
-  // 모든 인코딩 문제 복구 시도 (최선의 결과 반환)
-  static String tryAllFixMethods(String text) {
-    if (text.isEmpty) return text;
-
-    // 이미 정상적인 텍스트인지 확인
-    if (!isCorruptedText(text) && !isBase64Encoded(text)) {
-      return text;
-    }
-
+  /// ✅ Latin-1 → UTF-8 변환
+  static String _fixLatin1ToUtf8(String input) {
     try {
-      // 1. Base64 디코딩 시도
-      if (isBase64Encoded(text)) {
-        return decodeFromBase64(text);
-      }
-
-      // 2. 깨진 텍스트 복구 시도
-      if (isCorruptedText(text)) {
-        // 여러 방식 시도 및 가장 좋은 결과 반환
-
-        // 방법 1: Latin1 변환
-        String fixed1 = "";
-        try {
-          final bytes = latin1.encode(text);
-          fixed1 = utf8.decode(bytes, allowMalformed: true);
-        } catch (e) {
-          debugPrint('방법 1 실패: $e');
-        }
-
-        // 방법 2: 패턴 치환
-        String fixed2 = fixCorruptedText(text);
-
-        // 방법 3: ASCII 코드 포인트 조정
-        String fixed3 = "";
-        try {
-          final bytes = text.codeUnits;
-          final adjustedBytes = bytes.map((b) => b > 127 ? b - 128 : b).toList();
-          fixed3 = String.fromCharCodes(adjustedBytes);
-        } catch (e) {
-          debugPrint('방법 3 실패: $e');
-        }
-
-        // 결과 평가 (한글 문자 수가 많은 것을 선택)
-        int koreanCount1 = countKoreanChars(fixed1);
-        int koreanCount2 = countKoreanChars(fixed2);
-        int koreanCount3 = countKoreanChars(fixed3);
-
-        if (koreanCount1 >= koreanCount2 && koreanCount1 >= koreanCount3) {
-          return fixed1;
-        } else if (koreanCount2 >= koreanCount1 && koreanCount2 >= koreanCount3) {
-          return fixed2;
-        } else {
-          return fixed3;
-        }
-      }
-
-      return text;
+      final utf8Bytes = utf8.encode(input);
+      return utf8.decode(utf8Bytes);
     } catch (e) {
-      debugPrint('모든 인코딩 복구 시도 실패: $e');
-      return text;
+      return input;
     }
   }
 
-  // 한글 문자 개수 세기 (private에서 public으로 변경)
-  static int countKoreanChars(String text) {
-    final RegExp koreanRegex = RegExp(r'[ㄱ-ㅎ가-힣]');
-    final matches = koreanRegex.allMatches(text);
-    return matches.length;
+  /// ✅ Windows 인코딩 문제 복구
+  static String _fixWindowsEncoding(String input) {
+    // Windows-1252 → UTF-8 변환 시도
+    const windowsToUtf8 = {
+      'â€™': "'", // 아포스트로피
+      'â€œ': '"', // 열린 따옴표
+      'â€': '"',  // 닫힌 따옴표
+      'â€"': '–', // en dash
+      'Ã©': 'é',  // e acute
+      'Ã¡': 'á',  // a acute
+      'Ã³': 'ó',  // o acute
+    };
+
+    String result = input;
+    windowsToUtf8.forEach((wrong, correct) {
+      result = result.replaceAll(wrong, correct);
+    });
+
+    return result;
+  }
+
+  /// ✅ 제어 문자 제거
+  static String _removeControlCharacters(String input) {
+    // 유니코드 제어 문자 제거 (탭, 줄바꿈, 캐리지 리턴 제외)
+    return input.replaceAll(RegExp(r'[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]'), '');
+  }
+
+  /// ✅ 텍스트 정규화 (권장 방법)
+  static String normalizeText(String input) {
+    if (input.isEmpty) return input;
+
+    // 1. 기본 정리
+    String result = input.trim();
+
+    // 2. 연속된 공백 정리
+    result = result.replaceAll(RegExp(r'\s+'), ' ');
+
+    // 3. 특수 공백 문자들을 일반 공백으로 변환
+    result = result.replaceAll(RegExp(r'[\u00A0\u2000-\u200B\u2028\u2029]'), ' ');
+
+    // 4. 제어 문자 제거 (탭, 줄바꿈 제외)
+    result = _removeControlCharacters(result);
+
+    return result;
+  }
+
+  /// ✅ 안전한 텍스트 저장 준비
+  static String prepareForStorage(String input) {
+    // Base64 인코딩 대신 정규화만 수행
+    return normalizeText(input);
+  }
+
+  /// ✅ 안전한 텍스트 로드
+  static String prepareFromStorage(String stored) {
+    if (stored.isEmpty) return stored;
+
+    // 기존 Base64 데이터 호환성 체크
+    if (isBase64Encoded(stored)) {
+      return tryAllFixMethods(stored);
+    }
+
+    // 이미 정상적인 텍스트면 그대로 반환
+    return stored;
+  }
+
+  /// ✅ 마이그레이션 헬퍼 - Base64 → 직접 저장
+  static Map<String, String> migrateBase64Fields(Map<String, dynamic> data, List<String> fieldNames) {
+    final migrations = <String, String>{};
+
+    for (final fieldName in fieldNames) {
+      final value = data[fieldName];
+      if (value is String && value.isNotEmpty && isBase64Encoded(value)) {
+        try {
+          final decoded = decodeFromBase64(value);
+          migrations[fieldName] = decoded;
+        } catch (e) {
+          debugPrint('필드 $fieldName 마이그레이션 실패: $e');
+        }
+      }
+    }
+
+    return migrations;
+  }
+
+  /// ✅ 성능 통계
+  static Map<String, int> getPerformanceStats() {
+    return {
+      'base64_cache_size': _base64CheckCache.length,
+      'cache_max_size': _maxCacheSize,
+    };
+  }
+
+  /// ✅ 캐시 정리
+  static void clearCache() {
+    _base64CheckCache.clear();
+  }
+
+  /// ✅ 텍스트 크기 비교 (Base64 vs 직접 저장)
+  static Map<String, int> compareSizes(String text) {
+    final directSize = utf8.encode(text).length;
+    final base64Size = utf8.encode(encodeToBase64(text)).length;
+    final savings = base64Size - directSize;
+    final savingsPercent = ((savings / base64Size) * 100).round();
+
+    return {
+      'direct_bytes': directSize,
+      'base64_bytes': base64Size,
+      'savings_bytes': savings,
+      'savings_percent': savingsPercent,
+    };
+  }
+}
+
+/// ✅ 텍스트 품질 분석기
+class TextQualityAnalyzer {
+  /// 텍스트 품질 점수 계산 (0-100)
+  static int calculateQualityScore(String text) {
+    if (text.isEmpty) return 0;
+
+    int score = 100;
+
+    // 1. Base64 인코딩 감점 (-30점)
+    if (EncodingUtils.isBase64Encoded(text)) {
+      score -= 30;
+    }
+
+    // 2. 손상된 텍스트 감점 (-50점)
+    if (EncodingUtils.isCorruptedText(text)) {
+      score -= 50;
+    }
+
+    // 3. 제어 문자 감점 (-10점)
+    final controlCharCount = text.runes.where((rune) =>
+    rune < 32 && rune != 9 && rune != 10 && rune != 13).length;
+    if (controlCharCount > 0) {
+      score -= 10;
+    }
+
+    // 4. 과도한 공백 감점 (-5점)
+    if (text.contains(RegExp(r'\s{3,}'))) {
+      score -= 5;
+    }
+
+    return score.clamp(0, 100);
+  }
+
+  /// 텍스트 품질 보고서
+  static Map<String, dynamic> analyzeText(String text) {
+    return {
+      'quality_score': calculateQualityScore(text),
+      'is_base64': EncodingUtils.isBase64Encoded(text),
+      'is_corrupted': EncodingUtils.isCorruptedText(text),
+      'size_comparison': EncodingUtils.compareSizes(text),
+      'character_count': text.length,
+      'byte_count': utf8.encode(text).length,
+    };
   }
 }
