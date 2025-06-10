@@ -5,7 +5,7 @@ import 'package:flutter/foundation.dart';
 /// 앱 전체에서 사용할 상수 정의
 class AppConstants {
   // 앱 정보
-  static const String appName = "tiiun";
+  static const String appName = "LG 틔운 버디";
   static const String appVersion = "1.0.0";
   static const String appBuildNumber = "1";
 

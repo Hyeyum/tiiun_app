@@ -219,58 +219,62 @@ class _BuddyPageState extends State<BuddyPage> {
   Widget _buildBuddyImageCard(Map<String, dynamic> plant, bool isActive) {
     return Container(
       width: 140,
-      height: 140,
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(40),
-        border: Border.all(color: isActive ? Colors.white : AppColors.grey200, width: 1),
-        boxShadow: [
-          BoxShadow(
-            color: Color(0xFF131927).withOpacity(0.08),
-            blurRadius: 16,
-            spreadRadius: -6,
-            offset: const Offset(0, 8),
+      child: AspectRatio(
+        aspectRatio: 1.0, // 강제로 1:1 비율 유지
+        child: Container(
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(40),
+            border: Border.all(color: isActive ? Colors.white : AppColors.grey200, width: 1),
+            boxShadow: [
+              BoxShadow(
+                color: Color(0xFF131927).withOpacity(0.08),
+                blurRadius: 16,
+                spreadRadius: -6,
+                offset: const Offset(0, 8),
+              ),
+            ],
           ),
-        ],
-      ),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(40),
-        child: isActive
-            ? Stack(
-          children: [
-            // isActive일 때: 배경만 blur
-            BackdropFilter(
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(40),
+            child: isActive
+                ? Stack(
+              children: [
+                // isActive일 때: 배경만 blur
+                BackdropFilter(
+                  filter: ImageFilter.blur(sigmaX: 8, sigmaY: 8),
+                  child: Container(
+                    width: double.infinity,
+                    height: double.infinity,
+                    decoration: BoxDecoration(
+                      color: Colors.white.withOpacity(0.6),
+                    ),
+                  ),
+                ),
+                // 선명한 이미지
+                Center(
+                  child: Image.asset(
+                    fit: BoxFit.contain,
+                    plant['icon'],
+                    filterQuality: FilterQuality.high,
+                  ),
+                ),
+              ],
+            )
+                : BackdropFilter(
+              // isActive가 아닐 때: 전체(배경+이미지) blur
               filter: ImageFilter.blur(sigmaX: 8, sigmaY: 8),
               child: Container(
-                width: double.infinity,
-                height: double.infinity,
                 decoration: BoxDecoration(
                   color: Colors.white.withOpacity(0.6),
                 ),
-              ),
-            ),
-            // 선명한 이미지
-            Center(
-              child: Image.asset(
-                fit: BoxFit.contain,
-                plant['icon'],
-                filterQuality: FilterQuality.high,
-              ),
-            ),
-          ],
-        )
-            : BackdropFilter(
-          // isActive가 아닐 때: 전체(배경+이미지) blur
-          filter: ImageFilter.blur(sigmaX: 8, sigmaY: 8),
-          child: Container(
-            decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.6),
-            ),
-            child: Center(
-              child: Transform.scale(
-                scale: 0.85,
-                child: Image.asset(
-                  plant['icon'],
-                  filterQuality: FilterQuality.high,
+                child: Center(
+                  child: Transform.scale(
+                    scale: 0.85,
+                    child: Image.asset(
+                      plant['icon'],
+                      filterQuality: FilterQuality.high,
+                    ),
+                  ),
                 ),
               ),
             ),

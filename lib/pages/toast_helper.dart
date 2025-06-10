@@ -12,6 +12,7 @@ class ToastHelper {
     Color? backgroundColor,
     Color? textColor,
     Duration duration = const Duration(seconds: 2),
+    double? customTopPosition, // 커스텀 위치 옵션 추가
   }) {
     // 기존 토스트가 있다면 제거
     _removeToast();
@@ -24,6 +25,7 @@ class ToastHelper {
         backgroundColor: backgroundColor ?? Colors.black.withOpacity(0.5),
         textColor: textColor ?? Colors.white,
         duration: duration,
+        customTopPosition: customTopPosition,
         onDismiss: _removeToast,
       ),
     );
@@ -42,6 +44,7 @@ class TopToastWidget extends StatefulWidget {
   final Color backgroundColor;
   final Color textColor;
   final Duration duration;
+  final double? customTopPosition;
   final VoidCallback onDismiss;
 
   const TopToastWidget({
@@ -50,6 +53,7 @@ class TopToastWidget extends StatefulWidget {
     required this.backgroundColor,
     required this.textColor,
     required this.duration,
+    this.customTopPosition,
     required this.onDismiss,
   });
 
@@ -118,9 +122,18 @@ class _TopToastWidgetState extends State<TopToastWidget>
 
   @override
   Widget build(BuildContext context) {
-    final paddingTop = MediaQuery.of(context).padding.top;
-    final hasAppBar = paddingTop >= 30; // 대략적 기준
-    final topPosition = paddingTop + (hasAppBar ? 24 : 56 + 16);
+    final mediaQuery = MediaQuery.of(context);
+    final statusBarHeight = mediaQuery.padding.top;
+    
+    // 커스텀 위치가 지정되었다면 사용, 아니면 기본 계산
+    final double topPosition;
+    if (widget.customTopPosition != null) {
+      topPosition = widget.customTopPosition!;
+    } else {
+      // 더 안전한 계산: 상태바 높이 + 표준 여유공간
+      // AppBar가 있는 경우를 가정하여 충분한 공간 확보
+      topPosition = statusBarHeight + 72; // 상태바 + AppBar(56) + 여유공간(16)
+    }
 
     return Positioned(
       top: topPosition,

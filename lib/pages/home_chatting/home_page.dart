@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter/foundation.dart'; // kDebugMode를 위해 추가
 import 'package:tiiun/pages/home_chatting/chatting_page.dart';
 import 'package:tiiun/pages/buddy/buddy_page.dart';
 import 'package:tiiun/pages/home_chatting/conversation_list_page.dart';
@@ -745,6 +746,17 @@ class _HomePageState extends ConsumerState<HomePage> {
 
   @override
   Widget build(BuildContext context) {
+    // 디버그 정보 출력
+    final mediaQuery = MediaQuery.of(context);
+    final textScaler = MediaQuery.textScalerOf(context);
+    
+    print('=== 기기 정보 ===');
+    print('화면 크기: ${mediaQuery.size}');
+    print('픽셀 비율: ${mediaQuery.devicePixelRatio}');
+    print('텍스트 스케일: ${textScaler.scale(1.0)}');
+    print('패딩 (SafeArea): ${mediaQuery.padding}');
+    print('뷰 패딩: ${mediaQuery.viewPadding}');
+    
     return Scaffold(
       body: _buildContent(),
       bottomNavigationBar: ClipRRect(
@@ -756,7 +768,7 @@ class _HomePageState extends ConsumerState<HomePage> {
           filter: ImageFilter.blur(sigmaX: 8.0, sigmaY: 8.0),
           child: Container(
             width: 360,
-            height: 70, // 두 번째 코드와 동일하게 70으로 변경
+            height: kDebugMode ? 85 : 75, // 디버그 모드에서만 높이 증가
             decoration: BoxDecoration(
               color: Colors.white,
               borderRadius: const BorderRadius.only(

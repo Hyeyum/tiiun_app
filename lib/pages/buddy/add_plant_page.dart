@@ -5,8 +5,8 @@ import '../../design_system/typography.dart';
 import '../../models/plant_model.dart';
 import '../../services/backend_providers.dart';
 import 'package:flutter_svg/flutter_svg.dart';
-
 import '../../utils/constants.dart';
+import '../../utils/plant_data.dart'; // 추가된 import
 
 class AddPlantPage extends ConsumerStatefulWidget {
   const AddPlantPage({super.key});
@@ -17,11 +17,11 @@ class AddPlantPage extends ConsumerStatefulWidget {
 
 class _AddPlantPageState extends ConsumerState<AddPlantPage> {
   final _formKey = GlobalKey<FormState>();
-  final _speciesNameController = TextEditingController();
   final _nicknameController = TextEditingController();
   final _locationController = TextEditingController();
   final _notesController = TextEditingController();
 
+  PlantData? _selectedPlant; // 추가된 변수
   String _selectedGrowthStage = '씨앗';
   String _selectedHealthStatus = '건강';
   DateTime _plantedDate = DateTime.now();
@@ -32,7 +32,6 @@ class _AddPlantPageState extends ConsumerState<AddPlantPage> {
 
   @override
   void dispose() {
-    _speciesNameController.dispose();
     _nicknameController.dispose();
     _locationController.dispose();
     _notesController.dispose();
@@ -62,7 +61,7 @@ class _AddPlantPageState extends ConsumerState<AddPlantPage> {
           ),
         ),
         title: Padding(
-          padding: const EdgeInsets.only(top: 0), // 타이틀 위치 조정
+          padding: const EdgeInsets.only(top: 0),
           child: Text(
             '새 버디 등록',
             style: AppTypography.b2.withColor(AppColors.grey900),
@@ -80,19 +79,12 @@ class _AddPlantPageState extends ConsumerState<AddPlantPage> {
               _buildInputCard(
                 title: '기본 정보',
                 children: [
-                  _buildTextFormField(
-                    controller: _speciesNameController,
-                    label: '식물 종류',
-                    hint: '예: 금어초, 방울토마토, 바질',
-                    isRequired: true,
-                    validator: (value) {
-                      if (value == null || value.trim().isEmpty) {
-                        return '식물 종류를 입력해주세요';
-                      }
-                      return null;
-                    },
-                  ),
+                  _buildPlantSelector(), // 식물 선택기로 변경
                   const SizedBox(height: 10),
+                  if (_selectedPlant != null) ...[
+                    _buildPlantPreview(), // 식물 미리보기 추가
+                    const SizedBox(height: 10),
+                  ],
                   _buildTextFormField(
                     controller: _nicknameController,
                     label: '애칭 (선택)',
@@ -156,6 +148,203 @@ class _AddPlantPageState extends ConsumerState<AddPlantPage> {
     );
   }
 
+  // 추가된 식물 선택기 메서드
+  Widget _buildPlantSelector() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        RichText(
+          text: TextSpan(
+            text: '식물 종류',
+            style: AppTypography.b2.withColor(AppColors.grey800),
+            children: const [
+              TextSpan(
+                text: ' *',
+                style: TextStyle(color: Colors.red),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 8),
+        Container(
+          width: double.infinity,
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          decoration: BoxDecoration(
+            color: AppColors.grey100,
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: DropdownButtonHideUnderline(
+            child: DropdownButton<PlantData?>(
+              value: _selectedPlant,
+              isExpanded: true,
+              dropdownColor: Colors.white,
+              borderRadius: BorderRadius.circular(12),
+              elevation: 8,
+              style: AppTypography.b1.withColor(AppColors.grey900), // 추가된 스타일
+              hint: Text(
+                '식물 종류를 선택해주세요',
+                style: AppTypography.b1.withColor(AppColors.grey400),
+              ),
+              items: [
+                DropdownMenuItem<PlantData?>(
+                  value: null,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(vertical: 4), // 추가된 패딩
+                    child: Text(
+                      '식물 종류를 선택해주세요',
+                      style: AppTypography.b1.withColor(AppColors.grey700), // 통일된 스타일
+                    ),
+                  ),
+                ),
+                ...PlantDataUtils.availablePlants.map((plant) {
+                  return DropdownMenuItem<PlantData?>(
+                    value: plant,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(vertical: 4), // 추가된 패딩
+                      child: Row(
+                        children: [
+                          ClipRRect(
+                            borderRadius: BorderRadius.circular(6),
+                            child: Image.asset(
+                              plant.imagePath,
+                              width: 30,
+                              height: 30,
+                              fit: BoxFit.cover,
+                              errorBuilder: (context, error, stackTrace) {
+                                return Container(
+                                  width: 30,
+                                  height: 30,
+                                  decoration: BoxDecoration(
+                                    color: AppColors.grey200,
+                                    borderRadius: BorderRadius.circular(6),
+                                  ),
+                                  child: const Icon(
+                                    Icons.local_florist,
+                                    size: 16,
+                                    color: AppColors.grey500,
+                                  ),
+                                );
+                              },
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Text(
+                              plant.displayName,
+                              style: AppTypography.b1.withColor(AppColors.grey700), // 통일된 스타일
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  );
+                }).toList(),
+              ],
+              onChanged: (PlantData? plant) {
+                setState(() {
+                  _selectedPlant = plant;
+                });
+              },
+              icon: SvgPicture.asset(
+                'assets/icons/buddy/Caret_Down_MD.svg',
+                width: 24,
+                height: 24,
+              ),
+              menuMaxHeight: 300,
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  // 추가된 식물 미리보기 메서드
+  Widget _buildPlantPreview() {
+    if (_selectedPlant == null) return const SizedBox.shrink();
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: AppColors.grey100,
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              ClipRRect(
+                borderRadius: BorderRadius.circular(8),
+                child: Image.asset(
+                  _selectedPlant!.imagePath,
+                  width: 60,
+                  height: 60,
+                  fit: BoxFit.cover,
+                  errorBuilder: (context, error, stackTrace) {
+                    return Container(
+                      width: 60,
+                      height: 60,
+                      decoration: BoxDecoration(
+                        color: AppColors.grey200,
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: const Icon(
+                        Icons.local_florist,
+                        size: 30,
+                        color: AppColors.grey500,
+                      ),
+                    );
+                  },
+                ),
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      _selectedPlant!.displayName,
+                      style: AppTypography.s2.withColor(AppColors.grey900),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      _selectedPlant!.description,
+                      style: AppTypography.b1.withColor(AppColors.grey600),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Text(
+            '관리 요구사항:',
+            style: AppTypography.b2.withColor(AppColors.grey800),
+          ),
+          const SizedBox(height: 4),
+          Wrap(
+            spacing: 8,
+            runSpacing: 4,
+            children: _selectedPlant!.careRequirements.map((requirement) {
+              return Container(
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                decoration: BoxDecoration(
+                  color: AppColors.main100,
+                  borderRadius: BorderRadius.circular(32),
+                ),
+                child: Text(
+                  requirement,
+                  style: AppTypography.b4.withColor(AppColors.main700),
+                ),
+              );
+            }).toList(),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildInputCard({required String title, required List<Widget> children}) {
     return Container(
       width: double.infinity,
@@ -210,14 +399,6 @@ class _AddPlantPageState extends ConsumerState<AddPlantPage> {
               borderRadius: BorderRadius.circular(12),
               borderSide: BorderSide.none,
             ),
-            // enabledBorder: OutlineInputBorder(
-            //   borderRadius: BorderRadius.circular(12),
-            //   borderSide: BorderSide(color: AppColors.grey200, width: 1),
-            // ),
-            // focusedBorder: OutlineInputBorder(
-            //   borderRadius: BorderRadius.circular(12),
-            //   borderSide: BorderSide(color: AppColors.main600, width: 2),
-            // ),
             contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
           ),
         ),
@@ -252,7 +433,7 @@ class _AddPlantPageState extends ConsumerState<AddPlantPage> {
               isExpanded: true,
               dropdownColor: Colors.white,
               borderRadius: BorderRadius.circular(12),
-              elevation: 8, // 그림자 높이
+              elevation: 8,
               style: AppTypography.b1.withColor(AppColors.grey900),
               items: items.map((item) {
                 return DropdownMenuItem<String>(
@@ -323,7 +504,14 @@ class _AddPlantPageState extends ConsumerState<AddPlantPage> {
       width: double.infinity,
       height: 48,
       child: ElevatedButton(
-        onPressed: _isLoading ? null : _submitPlant,
+        onPressed: (_isLoading || _selectedPlant == null) 
+            ? null 
+            : () {
+                // 중복 클릭 방지를 위한 추가 체크
+                if (!_isLoading) {
+                  _submitPlant();
+                }
+              },
         style: ElevatedButton.styleFrom(
           backgroundColor: AppColors.main700,
           foregroundColor: Colors.white,
@@ -332,6 +520,7 @@ class _AddPlantPageState extends ConsumerState<AddPlantPage> {
             borderRadius: BorderRadius.circular(12),
           ),
           elevation: 0,
+          disabledBackgroundColor: AppColors.grey300, // 비활성화 색상 추가
         ),
         child: _isLoading
             ? const SizedBox(
@@ -360,12 +549,12 @@ class _AddPlantPageState extends ConsumerState<AddPlantPage> {
         return Theme(
           data: Theme.of(context).copyWith(
             colorScheme: ColorScheme.light(
-              primary: AppColors.main600, // 선택된 날짜 색상
-              onPrimary: Colors.white, // 선택된 날짜 텍스트 색상
-              surface: Colors.white, // 캘린더 배경색
-              onSurface: AppColors.grey900, // 일반 텍스트 색상
+              primary: AppColors.main600,
+              onPrimary: Colors.white,
+              surface: Colors.white,
+              onSurface: AppColors.grey900,
             ),
-            dialogTheme: DialogThemeData( // DialogTheme → DialogThemeData
+            dialogTheme: DialogThemeData(
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(8),
               ),
@@ -387,8 +576,19 @@ class _AddPlantPageState extends ConsumerState<AddPlantPage> {
       });
     }
   }
+
   Future<void> _submitPlant() async {
-    if (!_formKey.currentState!.validate()) {
+    // 이미 처리 중인 경우 중복 실행 방지
+    if (_isLoading) return;
+    
+    // 식물 선택 검증 수정
+    if (_selectedPlant == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('식물 종류를 선택해주세요.'),
+          backgroundColor: Colors.red,
+        ),
+      );
       return;
     }
 
@@ -399,21 +599,8 @@ class _AddPlantPageState extends ConsumerState<AddPlantPage> {
     try {
       final plantService = ref.read(plantApiServiceProvider);
 
-      // 🔥 추가 유효성 검사
-      final speciesName = _speciesNameController.text.trim();
-      if (speciesName.isEmpty) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('식물 종류를 입력해주세요.'),
-            backgroundColor: Colors.red,
-          ),
-        );
-        setState(() { _isLoading = false; });
-        return;
-      }
-
       final request = CreatePlantRequest(
-        speciesName: speciesName,
+        speciesName: _selectedPlant!.name, // 선택된 식물의 실제 이름 사용
         nickname: _nicknameController.text.trim().isEmpty
             ? null
             : _nicknameController.text.trim(),
@@ -423,6 +610,7 @@ class _AddPlantPageState extends ConsumerState<AddPlantPage> {
         location: _locationController.text.trim().isEmpty
             ? null
             : _locationController.text.trim(),
+        imageUrl: _selectedPlant!.imagePath, // 선택한 식물의 이미지 경로 설정
         notes: _notesController.text.trim().isEmpty
             ? null
             : _notesController.text.trim(),
@@ -431,10 +619,12 @@ class _AddPlantPageState extends ConsumerState<AddPlantPage> {
       // 🔍 디버깅: 요청 데이터 출력
       print('🔍 Creating plant with data:');
       print('  speciesName: "${request.speciesName}"');
+      print('  displayName: "${_selectedPlant!.displayName}"');
       print('  nickname: "${request.nickname}"');
       print('  growthStage: "${request.growthStage}"');
       print('  healthStatus: "${request.healthStatus}"');
       print('  location: "${request.location}"');
+      print('  imageUrl: "${request.imageUrl}"');
       print('  plantedDate: ${request.plantedDate}');
       print('  JSON: ${request.toJson()}');
 
@@ -445,7 +635,7 @@ class _AddPlantPageState extends ConsumerState<AddPlantPage> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(
-              '${request.nickname ?? request.speciesName}이(가) 성공적으로 등록되었습니다!',
+              '${request.nickname ?? _selectedPlant!.displayName}이(가) 성공적으로 등록되었습니다!',
             ),
             backgroundColor: Colors.green,
             duration: const Duration(seconds: 2),
@@ -453,7 +643,7 @@ class _AddPlantPageState extends ConsumerState<AddPlantPage> {
         );
 
         // 이전 페이지로 돌아가기
-        Navigator.pop(context);
+        Navigator.pop(context, true); // true를 반환하여 식물이 추가되었음을 알림
       } else {
         // 오류가 발생했을 때
         ScaffoldMessenger.of(context).showSnackBar(
