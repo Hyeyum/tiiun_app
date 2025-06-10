@@ -6,6 +6,7 @@ import 'package:tiiun/design_system/typography.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:tiiun/pages/mypage/settings_page.dart';
+import 'package:tiiun/pages/mypage/my_setting_subscribe.dart';
 
 class MyPage extends StatelessWidget {
   const MyPage({super.key});
@@ -177,10 +178,20 @@ class MyPage extends StatelessWidget {
                                     Positioned(
                                       top: 120,  // 위에서부터의 거리
                                       left: 97, // 왼쪽에서부터의 거리
-                                      child: Text(
-                                        '기간 별로 바뀌는\n나의 감정을 이해해요',
-                                        style: AppTypography.h5.withColor(AppColors.grey900),
-                                        textAlign: TextAlign.center,
+                                      child: GestureDetector(
+                                        onTap: () {
+                                          Navigator.push(
+                                            context,
+                                            MaterialPageRoute(
+                                              builder: (context) => const MySettingSubscribePage(),
+                                            ),
+                                          );
+                                        },
+                                        child: Text(
+                                          '기간별로 바뀌는\n나의 감정을 이해해요',
+                                          style: AppTypography.h5.withColor(AppColors.grey900),
+                                          textAlign: TextAlign.center,
+                                        ),
                                       ),
                                     ),
                                   ],
@@ -229,10 +240,20 @@ class MyPage extends StatelessWidget {
                               Positioned(
                                 top: 60,  // 위에서부터의 거리
                                 left: 80, // 왼쪽에서부터의 거리
-                                child: Text(
-                                  '내 유형을 이해하고\n적합한 조언을 받아보세요',
-                                  style: AppTypography.h5.withColor(AppColors.grey900),
-                                  textAlign: TextAlign.center,
+                                child: GestureDetector(
+                                  onTap: () {
+                                    Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                        builder: (context) => const MySettingSubscribePage(),
+                                      ),
+                                    );
+                                  },
+                                  child: Text(
+                                    '내 유형을 이해하고\n적합한 조언을 받아보세요',
+                                    style: AppTypography.h5.withColor(AppColors.grey900),
+                                    textAlign: TextAlign.center,
+                                  ),
                                 ),
                               ),
                             ],

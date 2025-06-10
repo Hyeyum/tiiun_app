@@ -83,7 +83,7 @@ class _BuddyDecoPageState extends State<BuddyDecoPage> {
         children: [
           // 화면 프리뷰 섹션 (가로 스크롤)
           Container(
-            height: 218,
+            height: 180, // 높이 조정으로 더 정사각형에 가깝게
             padding: EdgeInsets.symmetric(vertical: 20),
             child: PageView.builder(
               controller: _pageController,
@@ -124,8 +124,8 @@ class _BuddyDecoPageState extends State<BuddyDecoPage> {
                       padding: EdgeInsets.all(2), // gradient border 두께
                       child: Container(
                         padding: EdgeInsets.all(8),
-                        width: 158,
-                        height: 174,
+                        width: 140,
+                        height: 140, // 정사각형에 가깝게 조정
                         decoration: BoxDecoration(
                           color: Colors.white,
                           borderRadius: BorderRadius.circular(18),
@@ -133,8 +133,8 @@ class _BuddyDecoPageState extends State<BuddyDecoPage> {
                         child: ClipRRect(
                           borderRadius: BorderRadius.circular(16),
                           child: Image.asset(
-                            width: 146,
-                            height: 162,
+                            width: 124,
+                            height: 124, // 정사각형
                             previewImages[index],
                             fit: BoxFit.cover,
                             filterQuality: FilterQuality.high,
@@ -151,8 +151,8 @@ class _BuddyDecoPageState extends State<BuddyDecoPage> {
                         : ClipRRect(
                       borderRadius: BorderRadius.circular(16),
                       child: Image.asset(
-                        width: 112,
-                        height: 124,
+                        width: 100,
+                        height: 100, // 정사각형
                         previewImages[index],
                         fit: BoxFit.cover,
                         filterQuality: FilterQuality.high,
@@ -232,7 +232,7 @@ class _BuddyDecoPageState extends State<BuddyDecoPage> {
 
             // 카테고리 이미지들
             Container(
-              height: 156,
+              height: 120, // 높이를 줄여서 정사각형에 가깝게
               child: isLocked
                   ? ClipRRect(
                 borderRadius: BorderRadius.circular(16),
@@ -260,41 +260,42 @@ class _BuddyDecoPageState extends State<BuddyDecoPage> {
 
   Widget _buildImageRow(int categoryIndex) {
     return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: List.generate(3, (imageIndex) {
-        return Container(
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(16),
-          ),
-          width: 140,
-          height: 156,
-          child: Stack(
-            children: [
-              ClipRRect(
-                borderRadius: BorderRadius.circular(16),
-                child: Image.asset(
-                  categoryImages[categoryIndex][imageIndex],
-                  width: 140,
-                  height: 156,
-                  fit: BoxFit.cover,
-                  filterQuality: FilterQuality.high,
-                  errorBuilder: (context, error, stackTrace) {
-                    return Container(
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(16),
-                      ),
-                      child: Center(
-                        child: Icon(
-                          Icons.image,
-                          color: AppColors.grey500,
-                          size: 40,
+        return Expanded(
+          child: Container(
+            margin: EdgeInsets.symmetric(horizontal: 4), // 이미지 간 간격
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(16),
+            ),
+            height: 120, // 정사각형에 가깝게 높이 조정
+            child: Stack(
+              children: [
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(16),
+                  child: Image.asset(
+                    categoryImages[categoryIndex][imageIndex],
+                    width: double.infinity,
+                    height: 120,
+                    fit: BoxFit.cover,
+                    filterQuality: FilterQuality.high,
+                    errorBuilder: (context, error, stackTrace) {
+                      return Container(
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(16),
                         ),
-                      ),
-                    );
-                  },
+                        child: Center(
+                          child: Icon(
+                            Icons.image,
+                            color: AppColors.grey500,
+                            size: 40,
+                          ),
+                        ),
+                      );
+                    },
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         );
       }),

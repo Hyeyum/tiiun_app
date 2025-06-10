@@ -67,71 +67,81 @@ class _BuddyShopPageState extends State<BuddyShopPage> {
           ),
         );
       },
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // 상품 이미지
-          ClipRect(
-            child: BackdropFilter(
-              filter: ImageFilter.blur(sigmaX: 8, sigmaY: 8),
-              child: Container(
-                width: 100,
-                height: 100,
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(28),
-                  color: Colors.white.withOpacity(0.6),
-                  border: Border.all(
-                    color: Colors.white,
-                    width: 1,
-                  ),
-                  boxShadow: [
-                    BoxShadow(
-                      offset: Offset(0, 8),
-                      blurRadius: 16,
-                      spreadRadius: -6,
-                      color: Color(0xFF131927).withOpacity(0.08),
-                    ),
-                  ],
+      child: SizedBox(
+        width: 80,
+        height: 110, // 전체 카드 높이 고정
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // 상품 이미지
+            Container(
+              width: 80,
+              height: 80,
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(20),
+                color: Colors.white.withOpacity(0.6),
+                border: Border.all(
+                  color: Colors.white,
+                  width: 1,
                 ),
-                child: Image.asset(
-                  imagePath,
-                  fit: BoxFit.contain,
-                  errorBuilder: (context, error, stackTrace) {
-                    return Container(
-                      color: AppColors.grey100,
-                      child: Icon(
-                        Icons.image_not_supported,
-                        color: AppColors.grey400,
-                        size: 24,
-                      ),
-                    );
-                  },
+                boxShadow: [
+                  BoxShadow(
+                    offset: Offset(0, 4),
+                    blurRadius: 8,
+                    spreadRadius: -2,
+                    color: Color(0xFF131927).withOpacity(0.08),
+                  ),
+                ],
+              ),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(20),
+                child: Padding(
+                  padding: const EdgeInsets.all(8),
+                  child: Image.asset(
+                    imagePath,
+                    fit: BoxFit.contain,
+                    errorBuilder: (context, error, stackTrace) {
+                      return Container(
+                        color: AppColors.grey100,
+                        child: Icon(
+                          Icons.image_not_supported,
+                          color: AppColors.grey400,
+                          size: 20,
+                        ),
+                      );
+                    },
+                  ),
                 ),
               ),
             ),
-          ),
-          SizedBox(height: 4,),
-          // 상품 정보 (태그 + 이름)
-          Row(
-            children: [
-              Container(
-                width: 8,
-                height: 8,
-                decoration: BoxDecoration(
-                  color: getTagColor(category),
-                  shape: BoxShape.circle,
-                ),
+            SizedBox(height: 2),
+            // 상품 정보 (태그 + 이름)
+            Expanded(
+              child: Row(
+                children: [
+                  Container(
+                    width: 8,
+                    height: 8,
+                    decoration: BoxDecoration(
+                      color: getTagColor(category),
+                      shape: BoxShape.circle,
+                    ),
+                  ),
+                  SizedBox(width: 6),
+                  Expanded(
+                    child: Text(
+                      productName,
+                      style: AppTypography.c1.withColor(AppColors.grey900),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                ],
               ),
-              SizedBox(width: 6,),
-              Text(
-                productName,
-                style: AppTypography.c1.withColor(AppColors.grey900),
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-              ),
-            ],
-          ),
-        ],
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -139,10 +149,9 @@ class _BuddyShopPageState extends State<BuddyShopPage> {
   // 상품 목록 데이터
   List<Map<String, String>> getProductList() {
     return [
-      {'image': 'assets/images/shop/image_pureum.png', 'category': '랜덤', 'name': '랜덤씨앗키트'}, // 기타 카테고리
+      {'image': 'assets/images/shop/image_pureum.png', 'category': '랜덤', 'name': '랜덤씨앗키트'},
       {'image': 'assets/images/shop/image_impha_pink.png', 'category': '화훼류', 'name': '임파첸스(분홍색)'},
-      {'image': 'assets/images/shop/image_impha_white.png', 'category': '화훼류', 'name': '임파첸스(흰색)'},
-      {'image': 'assets/images/shop/image_geumuh_pink.png', 'category': '화훼류', 'name': '금어초(분홍색)'},
+      {'image': 'assets/images/shop/image_impha_white.png', 'category': '화훼류', 'name': '임파첸스(흰색)'},      {'image': 'assets/images/shop/image_geumuh_pink.png', 'category': '화훼류', 'name': '금어초(분홍색)'},
       {'image': 'assets/images/shop/image_geumuh_yell.png', 'category': '화훼류', 'name': '금어초(노란색)'},
       {'image': 'assets/images/shop/image_tomato.png', 'category': '과채류', 'name': '방울토마토'},
       {'image': 'assets/images/shop/image_lavandula.png', 'category': '화훼류', 'name': '라벤듈라'},
@@ -173,7 +182,7 @@ class _BuddyShopPageState extends State<BuddyShopPage> {
     }).toList();
   }
 
-  // 상품 카드 위젯을 생성하는 함수
+  // 영양제 카드 위젯을 생성하는 함수
   Widget _buildNutritionCard({
     required String imagePath,
     required String productName,
@@ -193,58 +202,66 @@ class _BuddyShopPageState extends State<BuddyShopPage> {
           ),
         );
       },
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // 상품 이미지
-          ClipRect(
-            child: BackdropFilter(
-              filter: ImageFilter.blur(sigmaX: 8, sigmaY: 8),
-              child: Container(
-                width: 100,
-                height: 100,
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(28),
-                  color: Colors.white.withOpacity(0.6),
-                  border: Border.all(
-                    color: Colors.white,
-                    width: 1,
-                  ),
-                  boxShadow: [
-                    BoxShadow(
-                      offset: Offset(0, 8),
-                      blurRadius: 16,
-                      spreadRadius: -6,
-                      color: Color(0xFF131927).withOpacity(0.08),
-                    ),
-                  ],
+      child: SizedBox(
+        width: 80,
+        height: 110, // 전체 카드 높이 고정
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // 상품 이미지
+            Container(
+              width: 80,
+              height: 80,
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(20),
+                color: Colors.white.withOpacity(0.6),
+                border: Border.all(
+                  color: Colors.white,
+                  width: 1,
                 ),
-                child: Image.asset(
-                  imagePath,
-                  fit: BoxFit.contain,
-                  errorBuilder: (context, error, stackTrace) {
-                    return Container(
-                      color: AppColors.grey100,
-                      child: Icon(
-                        Icons.image_not_supported,
-                        color: AppColors.grey400,
-                        size: 24,
-                      ),
-                    );
-                  },
+                boxShadow: [
+                  BoxShadow(
+                    offset: Offset(0, 4),
+                    blurRadius: 8,
+                    spreadRadius: -2,
+                    color: Color(0xFF131927).withOpacity(0.08),
+                  ),
+                ],
+              ),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(20),
+                child: Padding(
+                  padding: const EdgeInsets.all(8),
+                  child: Image.asset(
+                    imagePath,
+                    fit: BoxFit.contain,
+                    errorBuilder: (context, error, stackTrace) {
+                      return Container(
+                        color: AppColors.grey100,
+                        child: Icon(
+                          Icons.image_not_supported,
+                          color: AppColors.grey400,
+                          size: 20,
+                        ),
+                      );
+                    },
+                  ),
                 ),
               ),
             ),
-          ),
-          SizedBox(height: 4,),
-          // 상품 정보 (태그 + 이름)
-          Text(
-            productName,
-            style: AppTypography.c1.withColor(AppColors.grey900),
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-          ),
-        ],
+            SizedBox(height: 2),
+            // 상품 정보
+            Expanded(
+              child: Text(
+                productName,
+                style: AppTypography.c1.withColor(AppColors.grey900),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -268,7 +285,7 @@ class _BuddyShopPageState extends State<BuddyShopPage> {
     }).toList();
   }
 
-  // 상품 카드 위젯을 생성하는 함수
+  // 장식 카드 위젯을 생성하는 함수
   Widget _buildDecorationCard({
     required String imagePath,
     required String productName,
@@ -288,61 +305,63 @@ class _BuddyShopPageState extends State<BuddyShopPage> {
           ),
         );
       },
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // 상품 이미지
-          ClipRect(
-            child: BackdropFilter(
-              filter: ImageFilter.blur(sigmaX: 8, sigmaY: 8),
-              child: Container(
-                width: 100,
-                height: 100,
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(28),
-                  color: Colors.white.withOpacity(0.6),
-                  border: Border.all(
-                    color: Colors.white,
-                    width: 1,
-                  ),
-                  boxShadow: [
-                    BoxShadow(
-                      offset: Offset(0, 8),
-                      blurRadius: 16,
-                      spreadRadius: -6,
-                      color: Color(0xFF131927).withOpacity(0.08),
-                    ),
-                  ],
+      child: SizedBox(
+        width: 80,
+        height: 110, // 전체 카드 높이 고정
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // 상품 이미지
+            Container(
+              width: 80,
+              height: 80,
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(20),
+                color: Colors.white.withOpacity(0.6),
+                border: Border.all(
+                  color: Colors.white,
+                  width: 1,
                 ),
-                child: Transform.scale(
-                  scale: 0.8,
-                  child: Image.asset(
-                    imagePath,
-                    fit: BoxFit.contain,
-                    errorBuilder: (context, error, stackTrace) {
-                      return Container(
-                        color: AppColors.grey100,
-                        child: Icon(
-                          Icons.image_not_supported,
-                          color: AppColors.grey400,
-                          size: 24,
-                        ),
-                      );
-                    },
+                boxShadow: [
+                  BoxShadow(
+                    offset: Offset(0, 4),
+                    blurRadius: 8,
+                    spreadRadius: -2,
+                    color: Color(0xFF131927).withOpacity(0.08),
                   ),
+                ],
+              ),
+              child: Transform.scale(
+                scale: 0.8,
+                child: Image.asset(
+                  imagePath,
+                  fit: BoxFit.contain,
+                  errorBuilder: (context, error, stackTrace) {
+                    return Container(
+                      color: AppColors.grey100,
+                      child: Icon(
+                        Icons.image_not_supported,
+                        color: AppColors.grey400,
+                        size: 24,
+                      ),
+                    );
+                  },
                 ),
               ),
             ),
-          ),
-          SizedBox(height: 4,),
-          // 상품 정보 (태그 + 이름)
-          Text(
-            productName,
-            style: AppTypography.c1.withColor(AppColors.grey900),
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-          ),
-        ],
+            SizedBox(height: 2),
+            // 상품 정보
+            Expanded(
+              child: Text(
+                productName,
+                style: AppTypography.c1.withColor(AppColors.grey900),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -369,7 +388,6 @@ class _BuddyShopPageState extends State<BuddyShopPage> {
       return name.contains(_searchQuery) || '장식'.contains(_searchQuery) || '스티커'.contains(_searchQuery);
     }).toList();
   }
-
   // 그리드 위젯을 생성하는 함수 (재사용 가능)
   Widget _buildProductGrid({
     required List<Map<String, String>> products,
@@ -391,7 +409,7 @@ class _BuddyShopPageState extends State<BuddyShopPage> {
     return LayoutBuilder(
       builder: (context, constraints) {
         final int cardsPerRow = 3;
-        final double cardWidth = 100;
+        final double cardWidth = 80;
         final double totalCardWidth = cardWidth * cardsPerRow;
         final double totalSpacing = constraints.maxWidth - totalCardWidth;
         final double spacing = totalSpacing / (cardsPerRow - 1);
@@ -470,7 +488,7 @@ class _BuddyShopPageState extends State<BuddyShopPage> {
           ),
         ),
         title: Padding(
-          padding: const EdgeInsets.only(top: 0), // 타이틀 위치 조정
+          padding: const EdgeInsets.only(top: 0),
           child: Text(
             '구매',
             style: AppTypography.b2.withColor(AppColors.grey900),
@@ -592,7 +610,6 @@ class _BuddyShopPageState extends State<BuddyShopPage> {
                   ),
                 ),
               ),
-
             // 씨앗키트
             if (filteredSeeds.isNotEmpty || _searchQuery.isEmpty)
               Container(
@@ -675,7 +692,7 @@ class _BuddyShopPageState extends State<BuddyShopPage> {
                     // 씨앗키트 상품 목록
                     _buildProductGrid(
                       products: filteredSeeds,
-                      cardBuilder: _buildNutritionCard, // 실제로는 사용되지 않음 (hasCategory가 true이므로)
+                      cardBuilder: _buildNutritionCard,
                       hasCategory: true,
                     ),
                   ],
@@ -702,7 +719,7 @@ class _BuddyShopPageState extends State<BuddyShopPage> {
                         '영양제',
                         style: AppTypography.s2.withColor(AppColors.grey900),
                       ),
-                      SizedBox(height: 16,),
+                      SizedBox(height: 16),
 
                       // 영양제 상품 목록
                       _buildProductGrid(
@@ -733,7 +750,7 @@ class _BuddyShopPageState extends State<BuddyShopPage> {
                         '장식',
                         style: AppTypography.s2.withColor(AppColors.grey900),
                       ),
-                      SizedBox(height: 16,),
+                      SizedBox(height: 16),
 
                       // 장식 상품 목록
                       _buildProductGrid(
@@ -744,7 +761,7 @@ class _BuddyShopPageState extends State<BuddyShopPage> {
                 ),
               ),
 
-            SizedBox(height: 70,),
+            SizedBox(height: 70),
           ],
         ),
       ),

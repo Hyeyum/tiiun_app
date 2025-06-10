@@ -3,7 +3,7 @@
     <uses-permission android:name="android.permission.INTERNET" />
 
     <application
-        android:label="myapp"
+        android:label="LG 틔운 버디"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher">
         <activity

@@ -639,8 +639,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> with WidgetsBindingObse
                       ? _buildOptimizedMessageList()
                       : _buildEmptyState(),
                 ),
-                if (_isTyping) _buildTypingIndicator(),
-
+                
                 // ✅ 음성 인식 상태 표시
                 ValueListenableBuilder<String>(
                   valueListenable: _currentTranscriptionNotifier,
@@ -675,14 +674,17 @@ class _ChatScreenState extends ConsumerState<ChatScreen> with WidgetsBindingObse
             right: 12,
             bottom: MediaQuery.of(context).padding.bottom + 16,
             child: ClipRRect(
-              borderRadius: BorderRadius.circular(48),
+              borderRadius: BorderRadius.circular(24), // 더 둥글게
               child: BackdropFilter(
                 filter: ImageFilter.blur(sigmaX: 8.0, sigmaY: 8.0),
                 child: Container(
-                  height: 50,
+                  constraints: const BoxConstraints(
+                    minHeight: 50, // 최소 높이
+                    maxHeight: 120, // 최대 높이 (약 4줄)
+                  ),
                   decoration: BoxDecoration(
                     color: Colors.white.withOpacity(0.8),
-                    borderRadius: BorderRadius.circular(48),
+                    borderRadius: BorderRadius.circular(24),
                     border: Border.all(
                       color: AppColors.grey200.withOpacity(0.8),
                       width: 1,
@@ -695,47 +697,82 @@ class _ChatScreenState extends ConsumerState<ChatScreen> with WidgetsBindingObse
                       ),
                     ],
                   ),
-                  child: Row(
-                    children: [
-                      // 카메라 버튼
-                      Padding(
-                        padding: const EdgeInsets.only(left: 12),
-                        child: GestureDetector(
-                          onTap: _handleCameraButton,
-                          child: Image.asset(
-                            'assets/icons/functions/camera.png',
-                            width: 24,
-                            height: 24,
-                          ),
-                        ),
-                      ),
-
-                      const SizedBox(width: 12),
-
-                      // 텍스트 입력 필드
-                      Expanded(
-                        child: TextField(
-                          controller: _messageController,
-                          focusNode: _textFieldFocusNode,
-                          decoration: InputDecoration(
-                            hintText: '무엇이든 이야기하세요',
-                            hintStyle: AppTypography.b4.withColor(AppColors.grey400),
-                            border: InputBorder.none,
-                            contentPadding: const EdgeInsets.symmetric(
-                              vertical: 14,
+                  child: Material( // Material 추가로 터치 반응성 개선
+                    color: Colors.transparent,
+                    child: IntrinsicHeight( // 내용에 따라 높이 자동 조절
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.end, // 아래쪽 정렬
+                        children: [
+                        // 카메라 버튼
+                        Padding(
+                          padding: const EdgeInsets.only(left: 12, bottom: 12),
+                          child: GestureDetector(
+                            onTap: _handleCameraButton,
+                            child: Image.asset(
+                              'assets/icons/functions/camera.png',
+                              width: 24,
+                              height: 24,
                             ),
                           ),
-                          onSubmitted: (_) => _sendCurrentMessage(),
-                          maxLines: null,
                         ),
-                      ),
 
-                      const SizedBox(width: 12),
+                        const SizedBox(width: 12),
 
-                      // 동적 버튼 (음성/전송)
-                      _buildDynamicButton(),
-                    ],
+                        // 텍스트 입력 필드
+                        Expanded(
+                          child: Container(
+                            constraints: const BoxConstraints(
+                              maxHeight: 100, // 최대 높이 제한
+                            ),
+                            child: TextField(
+                              controller: _messageController,
+                              focusNode: _textFieldFocusNode,
+                              enabled: true,
+                              autofocus: false,
+                              decoration: InputDecoration(
+                                hintText: '무엇이든 이야기하세요',
+                                hintStyle: AppTypography.b4.withColor(AppColors.grey400),
+                                border: InputBorder.none,
+                                enabledBorder: InputBorder.none,
+                                focusedBorder: InputBorder.none,
+                                contentPadding: const EdgeInsets.symmetric(
+                                  vertical: 14,
+                                  horizontal: 4,
+                                ),
+                                isDense: false, // IME 호환성을 위해 false로 변경
+                              ),
+                              onSubmitted: (_) => _sendCurrentMessage(),
+                              onChanged: (text) {
+                                print('🔍 텍스트 변경: "$text"'); // 디버깅 로그
+                                print('🔍 텍스트 길이: ${text.length}');
+                                _onTextChanged();
+                              },
+                              maxLines: null, // 한글 입력을 위해 null로 복원
+                              minLines: 1,
+                              textInputAction: TextInputAction.newline, // 한글 입력을 위해 newline으로 변경
+                              keyboardType: TextInputType.multiline, // 한글 입력을 위해 multiline으로 변경
+                              textCapitalization: TextCapitalization.none, // 한글에는 대문자 개념이 없으므로 none
+                              style: AppTypography.b3.withColor(AppColors.grey900),
+                              // 한글 입력을 위한 추가 설정
+                              textAlignVertical: TextAlignVertical.center,
+                              scrollPadding: EdgeInsets.zero,
+                              enableSuggestions: true, // 자동완성 활성화
+                              autocorrect: true, // 자동 수정 활성화
+                            ),
+                          ),
+                        ),
+
+                        const SizedBox(width: 12),
+
+                        // 동적 버튼 (음성/전송)
+                        Padding(
+                          padding: const EdgeInsets.only(right: 12, bottom: 12),
+                          child: _buildDynamicButton(),
+                        ),
+                      ],
+                    ),
                   ),
+                ),
                 ),
               ),
             ),
@@ -820,11 +857,21 @@ class _ChatScreenState extends ConsumerState<ChatScreen> with WidgetsBindingObse
           reverse: true, // 최신 메시지가 아래
           cacheExtent: 1000, // 캐시 확장으로 스크롤 성능 향상
           physics: const BouncingScrollPhysics(), // 부드러운 스크롤
-          padding: const EdgeInsets.fromLTRB(12, 82, 12, 82),
-          itemCount: messages.length,
+          padding: EdgeInsets.fromLTRB(12, 82, 12, MediaQuery.of(context).padding.bottom + 70), // 입력창과 적당한 여백 (100 → 70)
+          itemCount: messages.length + (_isTyping ? 1 : 0), // 타이핑 인디케이터 포함
           itemBuilder: (context, index) {
-            final message = messages[index];
-            final isLastAiMessage = index == 0 && !message.isUser;
+            // 타이핑 인디케이터가 첫 번째 아이템 (가장 아래)
+            if (_isTyping && index == 0) {
+              return Container(
+                margin: const EdgeInsets.only(bottom: 8, top: 8),
+                child: _buildTypingIndicator(),
+              );
+            }
+            
+            // 타이핑 인디케이터가 있으면 메시지 인덱스 조정
+            final messageIndex = _isTyping ? index - 1 : index;
+            final message = messages[messageIndex];
+            final isLastAiMessage = messageIndex == 0 && !message.isUser;
 
             // ✅ 메시지 빌더 최적화
             return _buildOptimizedMessageBubble(message, isLastAiMessage);
@@ -1042,39 +1089,44 @@ class _ChatScreenState extends ConsumerState<ChatScreen> with WidgetsBindingObse
   }
 
   Widget _buildTypingIndicator() {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      child: Align(
-        alignment: Alignment.centerLeft,
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-          decoration: const BoxDecoration(
-            color: AppColors.grey50,
-            borderRadius: BorderRadius.only(
-              topLeft: Radius.zero,
-              topRight: Radius.circular(16),
-              bottomLeft: Radius.circular(16),
-              bottomRight: Radius.circular(16),
+    return Align(
+      alignment: Alignment.centerLeft,
+      child: Container(
+        margin: const EdgeInsets.only(left: 16, right: 60),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        decoration: BoxDecoration(
+          color: AppColors.grey50,
+          borderRadius: const BorderRadius.only(
+            topLeft: Radius.zero,
+            topRight: Radius.circular(16),
+            bottomLeft: Radius.circular(16),
+            bottomRight: Radius.circular(16),
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.05),
+              blurRadius: 8,
+              offset: const Offset(0, 2),
             ),
-          ),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(
-                '입력 중',
-                style: AppTypography.b3.withColor(AppColors.grey900),
+          ],
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              '틔운이가 입력 중',
+              style: AppTypography.b3.withColor(AppColors.grey900),
+            ),
+            const SizedBox(width: 8),
+            const SizedBox(
+              width: 20,
+              height: 20,
+              child: CircularProgressIndicator(
+                strokeWidth: 2,
+                valueColor: AlwaysStoppedAnimation<Color>(AppColors.grey900),
               ),
-              const SizedBox(width: 8),
-              const SizedBox(
-                width: 20,
-                height: 20,
-                child: CircularProgressIndicator(
-                  strokeWidth: 2,
-                  valueColor: AlwaysStoppedAnimation<Color>(AppColors.grey900),
-                ),
-              ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );
@@ -1156,37 +1208,35 @@ class _ChatScreenState extends ConsumerState<ChatScreen> with WidgetsBindingObse
     return ValueListenableBuilder<bool>(
       valueListenable: _hasTextNotifier,
       builder: (context, hasText, child) {
-        return Padding(
-          padding: const EdgeInsets.only(right: 12),
-          child: GestureDetector(
-            onTap: () {
-              if (hasText) {
-                _sendCurrentMessage();
-              } else {
-                _toggleVoiceInput();
-              }
+        return GestureDetector(
+          onTap: () {
+            if (hasText) {
+              _sendCurrentMessage();
+            } else {
+              _toggleVoiceInput();
+            }
+          },
+          onLongPress: hasText ? null : _startVoiceAssistantMode, // 🤖 롱프레스로 음성 어시스턴트 모드
+          child: AnimatedSwitcher(
+            duration: const Duration(milliseconds: 150),
+            transitionBuilder: (Widget child, Animation<double> animation) {
+              return FadeTransition(
+                opacity: animation,
+                child: child,
+              );
             },
-            onLongPress: hasText ? null : _startVoiceAssistantMode, // 🤖 롱프레스로 음성 어시스턴트 모드
-            child: AnimatedSwitcher(
-              duration: const Duration(milliseconds: 150),
-              transitionBuilder: (Widget child, Animation<double> animation) {
-                return FadeTransition(
-                  opacity: animation,
-                  child: child,
-                );
-              },
-              child: hasText
-                  ? SvgPicture.asset(
-                'assets/icons/functions/Paper_Plane.svg',
-                width: 28,
-                height: 28,
-                colorFilter: const ColorFilter.mode(AppColors.main600, BlendMode.srcIn),
-                key: const ValueKey('send'),
-              )
-                  : ValueListenableBuilder<bool>(
-                valueListenable: _isRecordingNotifier,
-                builder: (context, isRecording, child) {
-                  return Container(
+            child: hasText
+                ? SvgPicture.asset(
+              'assets/icons/functions/Paper_Plane.svg',
+              width: 28,
+              height: 28,
+              colorFilter: const ColorFilter.mode(AppColors.main600, BlendMode.srcIn),
+              key: const ValueKey('send'),
+            )
+                : ValueListenableBuilder<bool>(
+              valueListenable: _isRecordingNotifier,
+              builder: (context, isRecording, child) {
+                return Container(
                     decoration: isRecording ? BoxDecoration(
                       color: AppColors.main100,
                       shape: BoxShape.circle,
@@ -1205,7 +1255,6 @@ class _ChatScreenState extends ConsumerState<ChatScreen> with WidgetsBindingObse
                   );
                 },
               ),
-            ),
           ),
         );
       },
@@ -1319,7 +1368,22 @@ class _ChatScreenState extends ConsumerState<ChatScreen> with WidgetsBindingObse
   void _focusTextField() {
     if (_isDisposed) return;
 
+    print('🔍 _focusTextField 호출됨'); // 디버깅 로그
+    print('🔍 FocusNode hasFocus: ${_textFieldFocusNode.hasFocus}');
+    print('🔍 TextField enabled: ${_messageController.text}');
+    
     FocusScope.of(context).requestFocus(_textFieldFocusNode);
+    
+    // 강제로 키보드 표시 (Android/iOS)
+    if (kDebugMode) {
+      Future.delayed(Duration(milliseconds: 100), () {
+        if (_textFieldFocusNode.hasFocus) {
+          print('✅ TextField에 포커스 성공');
+        } else {
+          print('❌ TextField 포커스 실패');
+        }
+      });
+    }
   }
 
   void _showSnackBar(String message, Color color) {
